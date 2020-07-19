@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -40,6 +41,34 @@ namespace EPLAN_Cable_Packing
      *
      */
 
+    internal static class DecimalExtensions
+    {
+        public static int Precision(this decimal decimalValue)
+        {
+            return decimalValue.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                .TrimEnd('0')
+                .SkipWhile(c => c != '.')
+                .Skip(1)
+                .Count();
+        }
+    }
+
+    public static class GraphicsExtensions
+    {
+        public static void DrawCircle(this Graphics g, Pen pen,
+            float centerX, float centerY, float radius)
+        {
+            g.DrawEllipse(pen, centerX - radius, centerY - radius,
+                radius + radius, radius + radius);
+        }
+
+        public static void FillCircle(this Graphics g, Brush brush,
+            float centerX, float centerY, float radius)
+        {
+            g.FillEllipse(brush, centerX - radius, centerY - radius,
+                radius + radius, radius + radius);
+        }
+    }
 
     static class Program
     {
@@ -49,7 +78,7 @@ namespace EPLAN_Cable_Packing
         [STAThread]
         static void Main()
         {
-            // Add factory pattern
+            /*
             var factories = new Dictionary<Algorithms, AlgorithmFactory>
             {
                 {Algorithms.Greedy, new GreedyAlgorithmFactory()},
@@ -59,12 +88,12 @@ namespace EPLAN_Cable_Packing
             const string inputFile = "input.txt";
             const Algorithms algorithmType = Algorithms.Greedy;
 
+            var maxPrecision = 0;
             var diameters = new List<decimal>();
 
             using (var inputProcessor = new InputProcessor(inputFile))
             {
                 decimal? entry;
-                var maxPrecision = 0;
 
                 while ((entry = inputProcessor.ReadEntry()) != null)
                 {
@@ -75,9 +104,12 @@ namespace EPLAN_Cable_Packing
                 }
             }
 
-            var algorithm = factories[algorithmType].Create();
+            var integerDiameters = diameters.Select(diameter => (int) (diameter * maxPrecision)).ToList();
+
+            var cablePacking = new CablePacking(factories[algorithmType].Create());
             
-            var result = algorithm.Run();
+            var result = cablePacking.GetCablePacking(integerDiameters);
+            */
 
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();

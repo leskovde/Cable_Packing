@@ -68,14 +68,14 @@ namespace EPLAN_Cable_Packing
 
         public static (long leftMostCoordinate, long rightMostCoordinate, long lowerMostCoordinate, long
             upperMostCoordinate)
-            GetPackingBoundaries(List<Circle> _circlePlacements)
+            GetPackingBoundaries(List<Circle> circlePlacements)
         {
             var leftMostCoordinate = long.MaxValue;
             var rightMostCoordinate = long.MinValue;
             var lowerMostCoordinate = long.MaxValue;
             var upperMostCoordinate = long.MinValue;
 
-            foreach (var circle in _circlePlacements)
+            foreach (var circle in circlePlacements)
             {
                 if (circle.Center.X - circle.Radius < leftMostCoordinate)
                     leftMostCoordinate = circle.Center.X - circle.Radius;
@@ -99,18 +99,14 @@ namespace EPLAN_Cable_Packing
      */
     internal class SinglePassPackingAlgorithm : IPackingAlgorithm
     {
-        private List<Circle> _circlePlacements;
-        private long _gridSize;
-        private int _roughnessMultiplier;
-
         public PackingResultWrapper Run(List<int> radii)
         {
-            _gridSize = radii.Sum();
-            _roughnessMultiplier = (int) (1.0 / GetRoughnessMultiplier(_gridSize));
-            var bundleCenter = new Point(_gridSize / 2, _gridSize / 2);
+            long gridSize = radii.Sum();
+            var roughnessMultiplier = (int) (1.0 / GetRoughnessMultiplier(gridSize));
+            var bundleCenter = new Point(gridSize / 2, gridSize / 2);
 
             radii.Sort((x, y) => y.CompareTo(x));
-            _circlePlacements = new List<Circle>();
+            var circlePlacements = new List<Circle>();
 
             var smallRadiiQueue = new Queue<int>();
             var largeRadiiQueue = new Queue<int>();
@@ -121,7 +117,7 @@ namespace EPLAN_Cable_Packing
 
             // Slowly spiral out of the center
             foreach (var point in bundleCenter.GetSpiralInterval(new Point(0, 0),
-                new Point(_gridSize, _gridSize), Math.Max(_roughnessMultiplier / 2, 1)))
+                new Point(gridSize, gridSize), Math.Max(roughnessMultiplier / 2, 1)))
             {
                 if (largeRadiiQueue.Count == 0 && smallRadiiQueue.Count == 0) break;
 
@@ -132,7 +128,7 @@ namespace EPLAN_Cable_Packing
                 {
                     var intersectsAnotherCircle = false;
 
-                    foreach (var circle in _circlePlacements)
+                    foreach (var circle in circlePlacements)
                     {
                         if (SquareDistance(circle.Center, point) >= Power(currentRadius + circle.Radius, 2))
                             continue;
@@ -152,7 +148,7 @@ namespace EPLAN_Cable_Packing
                     else
                         smallRadiiQueue.Dequeue();
 
-                    _circlePlacements.Add(new Circle(currentRadius, point));
+                    circlePlacements.Add(new Circle(currentRadius, point));
 
                     break;
                 }
@@ -160,7 +156,7 @@ namespace EPLAN_Cable_Packing
 
             // Find the bundle center and radius
             var (leftMostCoordinate, rightMostCoordinate, lowerMostCoordinate, upperMostCoordinate) =
-                GetPackingBoundaries(_circlePlacements);
+                GetPackingBoundaries(circlePlacements);
             var lowestBundleRadius = Math.Max(rightMostCoordinate - leftMostCoordinate,
                                          upperMostCoordinate - lowerMostCoordinate) / 2;
 
@@ -168,11 +164,11 @@ namespace EPLAN_Cable_Packing
             bundleCenter.Y = lowerMostCoordinate + (upperMostCoordinate - lowerMostCoordinate) / 2;
 
             int actualBundleRadius;
-            (bundleCenter, actualBundleRadius) = PlaceBundle(lowestBundleRadius, bundleCenter, _circlePlacements,
-                _gridSize, _roughnessMultiplier);
+            (bundleCenter, actualBundleRadius) = PlaceBundle(lowestBundleRadius, bundleCenter, circlePlacements,
+                gridSize, roughnessMultiplier);
 
             return new PackingResultWrapper(new Circle(actualBundleRadius, bundleCenter) {Color = Color.Lime},
-                _circlePlacements);
+                circlePlacements);
         }
     }
 

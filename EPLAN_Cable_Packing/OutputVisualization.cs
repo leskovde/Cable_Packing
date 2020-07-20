@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
-using System.Runtime.Remoting.Channels;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace EPLAN_Cable_Packing
@@ -21,29 +16,33 @@ namespace EPLAN_Cable_Packing
             InitializeComponent();
         }
 
-        private void Canvas_Paint(object sender, PaintEventArgs e) { }
+        private void Canvas_Paint(object sender, PaintEventArgs e)
+        {
+        }
 
 
-        private void Canvas_Paint(object sender, PaintEventArgs e, PackingResultWrapper result, int maxPrecision)
+        private void Canvas_Paint(PaintEventArgs e, PackingResultWrapper result, int maxPrecision)
         {
             e.Graphics.Clear(Canvas.BackColor);
 
-            var multiplier = 3 * (float)result.Bundle.Radius / (Canvas.Width);
-            var xAxisOffset = (float)Canvas.Width / 2 - result.Bundle.Center.X / multiplier;
-            var yAxisOffset = (float)Canvas.Height / 2 - result.Bundle.Center.Y / multiplier;
+            var multiplier = 3 * (float) result.Bundle.Radius / Canvas.Width;
+            var xAxisOffset = (float) Canvas.Width / 2 - result.Bundle.Center.X / multiplier;
+            var yAxisOffset = (float) Canvas.Height / 2 - result.Bundle.Center.Y / multiplier;
 
             var outerCirclePen = new Pen(Color.LimeGreen, 3);
             var innerCirclePen = new Pen(Color.Aqua, 1);
 
-            e.Graphics.DrawCircle(outerCirclePen, result.Bundle, multiplier, xAxisOffset, yAxisOffset, result.Bundle.Radius / (decimal)Math.Pow(10, maxPrecision));
+            e.Graphics.DrawCircle(outerCirclePen, result.Bundle, multiplier, xAxisOffset, yAxisOffset,
+                result.Bundle.Radius / (decimal) Math.Pow(10, maxPrecision));
 
 
             foreach (var circle in result.InnerCircles)
-            {
-                e.Graphics.DrawCircle(innerCirclePen, circle, multiplier, xAxisOffset, yAxisOffset, circle.Radius / (decimal)Math.Pow(10, maxPrecision));
-            }
+                e.Graphics.DrawCircle(innerCirclePen, circle, multiplier, xAxisOffset, yAxisOffset,
+                    circle.Radius / (decimal) Math.Pow(10, maxPrecision));
 
-            OutputDiameterText.Text = (2 * result.Bundle.Radius / (decimal) Math.Pow(10, maxPrecision)).ToString(CultureInfo.InvariantCulture) + " mm";
+            OutputDiameterText.Text =
+                (2 * result.Bundle.Radius / (decimal) Math.Pow(10, maxPrecision))
+                .ToString(CultureInfo.InvariantCulture) + " mm";
         }
 
         private void BrowseButton_Click(object sender, EventArgs e)
@@ -65,10 +64,7 @@ namespace EPLAN_Cable_Packing
                 ShowReadOnly = true
             };
 
-            if (openFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                FileName.Text = openFileDialog.FileName;
-            }
+            if (openFileDialog.ShowDialog() == DialogResult.OK) FileName.Text = openFileDialog.FileName;
         }
 
         private void GreedySwitch_CheckedChanged(object sender, EventArgs e)
@@ -94,7 +90,7 @@ namespace EPLAN_Cable_Packing
             {
                 {Algorithms.Greedy, new GreedyAlgorithmFactory()},
                 {Algorithms.SinglePass, new SinglePassAlgorithmFactory()},
-                {Algorithms.IntegerProgramming, new IntegerProgrammingAlgorithmFactory()},
+                {Algorithms.IntegerProgramming, new IntegerProgrammingAlgorithmFactory()}
             };
 
             var inputFile = FileName.Text;
@@ -117,12 +113,15 @@ namespace EPLAN_Cable_Packing
                 }
             }
 
-            var integerRadii = radii.Select(radius => (int)(radius * (decimal)Math.Pow(10, maxPrecision))).ToList();
+            var integerRadii = radii.Select(radius => (int) (radius * (decimal) Math.Pow(10, maxPrecision))).ToList();
 
             var cablePacking = new CablePacking(factories[AlgorithmType].Create());
             var result = cablePacking.GetCablePacking(integerRadii);
 
-            Canvas.Paint += (senderObj, paintEventArgs) => { Canvas_Paint(sender, paintEventArgs, result, maxPrecision); };
+            Canvas.Paint += (senderObj, paintEventArgs) =>
+            {
+                Canvas_Paint(paintEventArgs, result, maxPrecision);
+            };
             Canvas.Refresh();
 
             Status.Text = "Finished";

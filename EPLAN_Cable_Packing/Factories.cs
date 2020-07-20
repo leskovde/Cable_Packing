@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace EPLAN_Cable_Packing
+﻿namespace EPLAN_Cable_Packing
 {
     internal enum Algorithms
     {

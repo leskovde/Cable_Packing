@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Text;
 
 namespace EPLAN_Cable_Packing
 {
@@ -83,9 +81,7 @@ namespace EPLAN_Cable_Packing
             Color = Color.FromArgb(rnd.Next(256), rnd.Next(256), rnd.Next(256));
 
             while (Color.R > 200 && Color.G > 200 && Color.B > 200)
-            {
                 Color = Color.FromArgb(rnd.Next(256), rnd.Next(256), rnd.Next(256));
-            }
         }
     }
 
@@ -100,5 +96,4 @@ namespace EPLAN_Cable_Packing
             InnerCircles = innerCircles;
         }
     }
-
 }

@@ -4,6 +4,9 @@ using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Google.OrTools.LinearSolver;
+using Google.OrTools.Sat;
+using LinearExpr = Google.OrTools.Sat.LinearExpr;
 
 namespace EPLAN_Cable_Packing
 {
@@ -301,7 +304,159 @@ namespace EPLAN_Cable_Packing
     {
         public PackingResultWrapper Run(List<int> radii)
         {
-            var returnValue = new PackingResultWrapper { Bundle = { Center = new Point(6, 2), Radius = 2 } };
+            var model = new CpModel();
+            //var solver = Solver.CreateSolver("CirclePacking", "CBC_MIXED_INTEGER_PROGRAMMING");
+
+            const int dimension = 2;
+            var domainConstraint = 2 * radii.Sum();
+
+            // promenne
+
+            // vysledny polomer
+            var bundleRadius = model.NewIntVar(0, domainConstraint, "r");
+
+            var circleCenters = new IntVar[radii.Count, dimension];
+            for (var i = 0; i < radii.Count; i++)
+            {
+                for (var j = 0; j < dimension; j++)
+                {
+                    circleCenters[i, j] = model.NewIntVar(-domainConstraint, domainConstraint, $"alpha_{i},{j}");
+                    //alpha[i, j] = solver.MakeIntVar(0.0, double.PositiveInfinity, $"alpha_{i},{j}");
+                }
+            }
+
+            var circleCentersSquared = new IntVar[radii.Count, dimension];
+            for (var i = 0; i < radii.Count; i++)
+            {
+                for (var j = 0; j < dimension; j++)
+                {
+                    circleCentersSquared[i, j] = model.NewIntVar(0, int.MaxValue, $"s_alpha_{i},{j}");
+                    //alpha[i, j] = solver.MakeIntVar(0.0, double.PositiveInfinity, $"alpha_{i},{j}");
+                }
+            }
+
+            var circleRadii = new IntVar[radii.Count];
+            for (var i = 0; i < radii.Count; i++)
+            {
+                circleRadii[i] = model.NewIntVar(radii[i], radii[i], $"r_{i}");
+            }
+
+            var circleRadiiSlack = new IntVar[radii.Count];
+            for (var i = 0; i < radii.Count; i++)
+            {
+                circleRadiiSlack[i] = model.NewIntVar(-domainConstraint, domainConstraint, $"s_r_{i}");
+            }
+
+            var circleRadiiSlackSquared = new IntVar[radii.Count];
+            for (var i = 0; i < radii.Count; i++)
+            {
+                circleRadiiSlackSquared[i] = model.NewIntVar(0, int.MaxValue, $"s_r_s_{i}");
+            }
+
+            var circleDistances = new IntVar[radii.Count, radii.Count, dimension];
+            for (var i = 0; i < radii.Count; i++)
+            {
+                for (var j = 0; j < radii.Count; j++)
+                {
+                    for (var k = 0; k < dimension; k++)
+                    {
+                        circleDistances[i, j, k] = model.NewIntVar(-domainConstraint, domainConstraint, $"s_d_{i}_{j}_{k}");
+                    }
+                }
+            }
+
+            var circleDistancesSquared = new IntVar[radii.Count, radii.Count, dimension];
+            for (var i = 0; i < radii.Count; i++)
+            {
+                for (var j = 0; j < radii.Count; j++)
+                {
+                    for (var k = 0; k < dimension; k++)
+                    {
+                        circleDistancesSquared[i, j, k] = model.NewIntVar(0, int.MaxValue, $"s_d_s_{i}_{j}_{k}");
+                    }
+                }
+            }
+
+            var radiiSum = new IntVar[radii.Count, radii.Count];
+            for (var i = 0; i < radii.Count; i++)
+            {
+                for (var j = 0; j < radii.Count; j++)
+                {
+                    radiiSum[i, j] = model.NewIntVar(-domainConstraint, domainConstraint, $"s_rs_{i}_{j}");
+                }
+            }
+
+            var radiiSumSquared = new IntVar[radii.Count, radii.Count];
+            for (var i = 0; i < radii.Count; i++)
+            {
+                for (var j = 0; j < radii.Count; j++)
+                {
+                    radiiSumSquared[i, j] = model.NewIntVar(0, int.MaxValue, $"s_rs_s_{i}_{j}");
+                }
+            }
+
+            // (1) All inner circles are fully contained in the bundle
+            for (var i = 0; i < radii.Count; i++)
+            {
+                model.AddProdEquality(circleCentersSquared[i, 0],
+                    new List<IntVar> {circleCenters[i, 0], circleCenters[i, 0]});
+
+                model.AddProdEquality(circleCentersSquared[i, 1],
+                    new List<IntVar> { circleCenters[i, 1], circleCenters[i, 1] });
+
+                model.Add(circleRadiiSlack[i] == bundleRadius - circleRadii[i]);
+                model.AddProdEquality(circleRadiiSlackSquared[i], new List<IntVar> { circleRadiiSlack[i], circleRadiiSlack[i] });
+
+                model.Add(circleCentersSquared[i, 0] + circleCentersSquared[i, 1] <= circleRadiiSlackSquared[i]);
+            }
+
+            // (2) None inner circle overlaps another inner circle
+            for (var i = 0; i < radii.Count; i++)
+            {
+                for (var j = 0; j < radii.Count; j++)
+                {
+                    if (i == j) continue;
+
+                    model.Add(circleDistances[i, j, 0] == circleCenters[i, 0] - circleCenters[j, 0]);
+                    model.Add(circleDistances[i, j, 1] == circleCenters[i, 1] - circleCenters[j, 1]);
+
+                    model.AddProdEquality(circleDistancesSquared[i, j, 0],
+                        new List<IntVar> { circleDistances[i, j, 0], circleDistances[i, j, 0] });
+
+                    model.AddProdEquality(circleDistancesSquared[i, j, 1],
+                        new List<IntVar> {circleDistances[i, j, 1], circleDistances[i, j, 1]});
+
+                    model.Add(radiiSum[i, j] == radii[i] + radii[j]);
+                    model.AddProdEquality(radiiSumSquared[i, j], new List<IntVar> {radiiSum[i, j], radiiSum[i, j]});
+
+                    model.Add(circleDistancesSquared[i, j, 0] + circleDistancesSquared[i, j, 1] >= radiiSumSquared[i, j]);
+                }
+            }
+
+            // (3) Bundle radius lower bound
+            model.AddMaxEquality(bundleRadius, circleRadii);
+
+            model.Minimize(bundleRadius);
+
+            CpSolver solver = new CpSolver();
+            CpSolverStatus status = solver.Solve(model);
+            //solver.Minimize(bundleRadius);
+
+            if (status == CpSolverStatus.Feasible)
+            {
+                Console.WriteLine("r = " + solver.Value(bundleRadius));
+            }
+
+            var bundle = new Circle((int) solver.Value(bundleRadius), new Point(0, 0));
+            var innerCircles = new List<Circle>();
+
+            for (var i = 0; i < radii.Count; i++)
+            {
+                innerCircles.Add(new Circle((int) solver.Value(circleRadii[i]), 
+                        new Point(solver.Value(circleCenters[i, 0]), solver.Value(circleCenters[i, 1]))));
+            }
+
+            var returnValue = new PackingResultWrapper(bundle, innerCircles);
 
             return returnValue;
         }

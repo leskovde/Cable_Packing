@@ -14,7 +14,7 @@ namespace EPLAN_Cable_Packing
 {
     internal partial class OutputVisualization : Form
     {
-        public static Algorithms AlgorithmType;
+        public static Algorithms AlgorithmType = Algorithms.LinearProgramming;
 
         public OutputVisualization()
         {
@@ -100,7 +100,8 @@ namespace EPLAN_Cable_Packing
                 {Algorithms.LinearProgramming, new LinearProgrammingAlgorithmFactory()},
             };
 
-            var inputFile = FileName.Text;
+            //var inputFile = FileName.Text;
+            var inputFile = "input.txt";
 
             var maxPrecision = 0;
             var radii = new List<decimal>();

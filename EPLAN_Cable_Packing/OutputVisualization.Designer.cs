@@ -30,6 +30,7 @@
         {
             this.Canvas = new System.Windows.Forms.Panel();
             this.UiPanel = new System.Windows.Forms.Panel();
+            this.SinglePassSwitch = new System.Windows.Forms.RadioButton();
             this.Status = new System.Windows.Forms.Label();
             this.StatusLabel = new System.Windows.Forms.Label();
             this.LinearSwitch = new System.Windows.Forms.RadioButton();
@@ -47,7 +48,7 @@
             // Canvas
             // 
             this.Canvas.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.Canvas.Location = new System.Drawing.Point(0, 100);
+            this.Canvas.Location = new System.Drawing.Point(0, 131);
             this.Canvas.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Canvas.Name = "Canvas";
             this.Canvas.Size = new System.Drawing.Size(782, 662);
@@ -57,6 +58,7 @@
             // UiPanel
             // 
             this.UiPanel.BackColor = System.Drawing.SystemColors.ControlDark;
+            this.UiPanel.Controls.Add(this.SinglePassSwitch);
             this.UiPanel.Controls.Add(this.Status);
             this.UiPanel.Controls.Add(this.StatusLabel);
             this.UiPanel.Controls.Add(this.LinearSwitch);
@@ -71,13 +73,24 @@
             this.UiPanel.Location = new System.Drawing.Point(0, 0);
             this.UiPanel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.UiPanel.Name = "UiPanel";
-            this.UiPanel.Size = new System.Drawing.Size(782, 100);
+            this.UiPanel.Size = new System.Drawing.Size(782, 132);
             this.UiPanel.TabIndex = 1;
+            // 
+            // SinglePassSwitch
+            // 
+            this.SinglePassSwitch.AutoSize = true;
+            this.SinglePassSwitch.Location = new System.Drawing.Point(423, 62);
+            this.SinglePassSwitch.Name = "SinglePassSwitch";
+            this.SinglePassSwitch.Size = new System.Drawing.Size(165, 21);
+            this.SinglePassSwitch.TabIndex = 10;
+            this.SinglePassSwitch.Text = "Single Pass algorithm";
+            this.SinglePassSwitch.UseVisualStyleBackColor = true;
+            this.SinglePassSwitch.CheckedChanged += new System.EventHandler(this.SinglePassSwitch_CheckedChanged);
             // 
             // Status
             // 
             this.Status.AutoSize = true;
-            this.Status.Location = new System.Drawing.Point(71, 72);
+            this.Status.Location = new System.Drawing.Point(71, 93);
             this.Status.Name = "Status";
             this.Status.Size = new System.Drawing.Size(23, 17);
             this.Status.TabIndex = 9;
@@ -86,7 +99,7 @@
             // StatusLabel
             // 
             this.StatusLabel.AutoSize = true;
-            this.StatusLabel.Location = new System.Drawing.Point(13, 72);
+            this.StatusLabel.Location = new System.Drawing.Point(13, 93);
             this.StatusLabel.Name = "StatusLabel";
             this.StatusLabel.Size = new System.Drawing.Size(52, 17);
             this.StatusLabel.TabIndex = 8;
@@ -95,20 +108,19 @@
             // LinearSwitch
             // 
             this.LinearSwitch.AutoSize = true;
-            this.LinearSwitch.Checked = true;
-            this.LinearSwitch.Location = new System.Drawing.Point(483, 61);
+            this.LinearSwitch.Location = new System.Drawing.Point(423, 89);
             this.LinearSwitch.Name = "LinearSwitch";
-            this.LinearSwitch.Size = new System.Drawing.Size(180, 21);
+            this.LinearSwitch.Size = new System.Drawing.Size(219, 21);
             this.LinearSwitch.TabIndex = 7;
-            this.LinearSwitch.TabStop = true;
-            this.LinearSwitch.Text = "Approximation algorithm";
+            this.LinearSwitch.Text = "Approximation algorithm (WIP)";
             this.LinearSwitch.UseVisualStyleBackColor = true;
             this.LinearSwitch.CheckedChanged += new System.EventHandler(this.LinearSwitch_CheckedChanged);
             // 
             // GreedySwitch
             // 
             this.GreedySwitch.AutoSize = true;
-            this.GreedySwitch.Location = new System.Drawing.Point(483, 23);
+            this.GreedySwitch.Checked = true;
+            this.GreedySwitch.Location = new System.Drawing.Point(423, 33);
             this.GreedySwitch.Name = "GreedySwitch";
             this.GreedySwitch.Size = new System.Drawing.Size(138, 21);
             this.GreedySwitch.TabIndex = 6;
@@ -119,7 +131,7 @@
             // 
             // StartButton
             // 
-            this.StartButton.Location = new System.Drawing.Point(684, 53);
+            this.StartButton.Location = new System.Drawing.Point(684, 47);
             this.StartButton.Name = "StartButton";
             this.StartButton.Size = new System.Drawing.Size(86, 36);
             this.StartButton.TabIndex = 5;
@@ -129,9 +141,9 @@
             // 
             // BrowseButton
             // 
-            this.BrowseButton.Location = new System.Drawing.Point(12, 42);
+            this.BrowseButton.Location = new System.Drawing.Point(12, 47);
             this.BrowseButton.Name = "BrowseButton";
-            this.BrowseButton.Size = new System.Drawing.Size(92, 27);
+            this.BrowseButton.Size = new System.Drawing.Size(86, 36);
             this.BrowseButton.TabIndex = 4;
             this.BrowseButton.Text = "Browse";
             this.BrowseButton.UseVisualStyleBackColor = true;
@@ -140,7 +152,7 @@
             // OutputDiameterText
             // 
             this.OutputDiameterText.AutoSize = true;
-            this.OutputDiameterText.Location = new System.Drawing.Point(297, 72);
+            this.OutputDiameterText.Location = new System.Drawing.Point(297, 93);
             this.OutputDiameterText.Name = "OutputDiameterText";
             this.OutputDiameterText.Size = new System.Drawing.Size(23, 17);
             this.OutputDiameterText.TabIndex = 3;
@@ -149,7 +161,7 @@
             // OutputDiameter
             // 
             this.OutputDiameter.AutoSize = true;
-            this.OutputDiameter.Location = new System.Drawing.Point(176, 72);
+            this.OutputDiameter.Location = new System.Drawing.Point(176, 93);
             this.OutputDiameter.Name = "OutputDiameter";
             this.OutputDiameter.Size = new System.Drawing.Size(115, 17);
             this.OutputDiameter.TabIndex = 2;
@@ -158,7 +170,7 @@
             // FileName
             // 
             this.FileName.AutoSize = true;
-            this.FileName.Location = new System.Drawing.Point(95, 10);
+            this.FileName.Location = new System.Drawing.Point(95, 9);
             this.FileName.Name = "FileName";
             this.FileName.Size = new System.Drawing.Size(23, 17);
             this.FileName.TabIndex = 1;
@@ -167,7 +179,7 @@
             // FileNameLabel
             // 
             this.FileNameLabel.AutoSize = true;
-            this.FileNameLabel.Location = new System.Drawing.Point(13, 10);
+            this.FileNameLabel.Location = new System.Drawing.Point(13, 9);
             this.FileNameLabel.Name = "FileNameLabel";
             this.FileNameLabel.Size = new System.Drawing.Size(73, 17);
             this.FileNameLabel.TabIndex = 0;
@@ -181,7 +193,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(782, 762);
+            this.ClientSize = new System.Drawing.Size(782, 793);
             this.Controls.Add(this.UiPanel);
             this.Controls.Add(this.Canvas);
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
@@ -210,6 +222,7 @@
         private System.Windows.Forms.Button StartButton;
         private System.Windows.Forms.Label Status;
         private System.Windows.Forms.Label StatusLabel;
+        private System.Windows.Forms.RadioButton SinglePassSwitch;
     }
 }
 

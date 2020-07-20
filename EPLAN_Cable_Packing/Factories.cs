@@ -7,7 +7,8 @@ namespace EPLAN_Cable_Packing
     internal enum Algorithms
     {
         Greedy,
-        LinearProgramming
+        SinglePass,
+        IntegerProgramming
     }
 
     internal abstract class AlgorithmFactory
@@ -23,11 +24,19 @@ namespace EPLAN_Cable_Packing
         }
     }
 
-    internal class LinearProgrammingAlgorithmFactory : AlgorithmFactory
+    internal class SinglePassAlgorithmFactory : AlgorithmFactory
     {
         public override IPackingAlgorithm Create()
         {
-            return new LinearProgrammingPackingAlgorithm();
+            return new SinglePassPackingAlgorithm();
+        }
+    }
+
+    internal class IntegerProgrammingAlgorithmFactory : AlgorithmFactory
+    {
+        public override IPackingAlgorithm Create()
+        {
+            return new IntegerProgrammingPackingAlgorithm();
         }
     }
 }

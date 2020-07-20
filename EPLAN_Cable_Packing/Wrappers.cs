@@ -36,6 +36,35 @@ namespace EPLAN_Cable_Packing
                 }
             }
         }
+
+        public IEnumerable<Point> GetSpiralInterval(Point from, Point to, int step)
+        {
+            var radius = to.X - from.X / 2;
+            var centerPoint = new Point(from.X + radius, from.Y + radius);
+
+            // Value of Theta corresponding to end of last coil
+            var thetaMax = radius * 2 * Math.PI;
+
+            double distanceBetweenPoints = step;
+
+            yield return centerPoint;
+
+            // For every side, step around and away from center. Start at the angle corresponding to a distance
+            // of chord away from centre.
+            for (var theta = distanceBetweenPoints / step; theta <= thetaMax;)
+            {
+                var awayFromCenter = step * theta;
+
+                var x = centerPoint.X + Math.Cos(theta) * awayFromCenter;
+                var y = centerPoint.Y + Math.Sin(theta) * awayFromCenter;
+
+                yield return new Point((long) x, (long) y);
+
+                // To a first approximation, the points are on a circle
+                // so the angle between them is chord/radius
+                theta += distanceBetweenPoints / awayFromCenter;
+            }
+        }
     }
 
     internal struct Circle
@@ -51,10 +80,12 @@ namespace EPLAN_Cable_Packing
 
             var rnd = new Random();
 
-            Color = default;
+            Color = Color.FromArgb(rnd.Next(256), rnd.Next(256), rnd.Next(256));
 
-            while (Color.R < 30 && Color.G < 30 && Color.B < 30)
+            while (Color.R > 200 && Color.G > 200 && Color.B > 200)
+            {
                 Color = Color.FromArgb(rnd.Next(256), rnd.Next(256), rnd.Next(256));
+            }
         }
     }
 

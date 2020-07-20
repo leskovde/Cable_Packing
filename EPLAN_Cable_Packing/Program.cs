@@ -46,7 +46,7 @@ namespace EPLAN_Cable_Packing
     {
         public static int Precision(this decimal decimalValue)
         {
-            return decimalValue.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            return decimalValue.ToString(CultureInfo.InvariantCulture)
                 .TrimEnd('0')
                 .SkipWhile(c => c != '.')
                 .Skip(1)
@@ -88,40 +88,6 @@ namespace EPLAN_Cable_Packing
         [STAThread]
         private static void Main()
         {
-            /*
-            var factories = new Dictionary<Algorithms, AlgorithmFactory>
-            {
-                {Algorithms.Greedy, new GreedyAlgorithmFactory()},
-                {Algorithms.LinearProgramming, new LinearProgrammingAlgorithmFactory()},
-            };
-
-            const string inputFile = "input.txt";
-            const Algorithms algorithmType = Algorithms.Greedy;
-
-            var maxPrecision = 0;
-            var diameters = new List<decimal>();
-
-            using (var inputProcessor = new InputProcessor(inputFile))
-            {
-                decimal? entry;
-
-                while ((entry = inputProcessor.ReadEntry()) != null)
-                {
-                    diameters.Add(entry.Value);
-
-                    if (entry.Value.Precision() > maxPrecision)
-                        maxPrecision = entry.Value.Precision();
-                }
-            }
-
-            var integerDiameters = diameters.Select(diameter => (int) (diameter * maxPrecision)).ToList();
-
-            var cablePacking = new CablePacking(factories[algorithmType].Create());
-            
-            var result = cablePacking.GetCablePacking(integerDiameters);
-            */
-
-            //Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new OutputVisualization());

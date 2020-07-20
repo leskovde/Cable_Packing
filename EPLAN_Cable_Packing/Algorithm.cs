@@ -2,69 +2,31 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using Google.OrTools.LinearSolver;
 using Google.OrTools.Sat;
-using LinearExpr = Google.OrTools.Sat.LinearExpr;
+using static EPLAN_Cable_Packing.AlgorithmExtensions;
 
 namespace EPLAN_Cable_Packing
 {
-    /**
-     * Place the circle closest to the center of the containing circle while not touching
-     * any other circles.
-     */
-    internal class GreedyPackingAlgorithm : IPackingAlgorithm
+    internal static class AlgorithmExtensions
     {
-        private long _gridSize;
-        private int _roughnessMultiplier;
-        private List<Circle> _circlePlacements;
-
         // Avoid the float operations used in Math.Pow
-        private static long Power(long number, long power)
+        public static long Power(long number, long power)
         {
             return power == 1 ? number : number * Power(number, power - 1);
         }
 
-        private static long SquareDistance(Point point1, Point point2)
+        public static long SquareDistance(Point point1, Point point2)
         {
-            return (Power(point1.X - point2.X, 2) + Power(point1.Y - point2.Y, 2));
+            return Power(point1.X - point2.X, 2) + Power(point1.Y - point2.Y, 2);
         }
 
-        private static long GetRoughnessMultiplier(long inputSize)
+        public static double GetRoughnessMultiplier(long inputSize)
         {
-            return inputSize / 1000;
-            //return inputSize / (300 + 7000 / (1 + Power(inputSize / 40000, 40)));
+            return Math.Min(1, 1.25 * Math.Pow(inputSize, -0.5));
         }
 
-        public PackingResultWrapper Run(List<int> radii)
-        {
-            _gridSize = radii.Sum() * 2;
-            _roughnessMultiplier = (int) GetRoughnessMultiplier(_gridSize);
-            var bundleCenter = new Point(_gridSize / 2, _gridSize / 2);
-
-            radii.Sort((x, y) => y.CompareTo(x));
-            _circlePlacements = new List<Circle>();
-
-            PlaceCircles(radii, bundleCenter);
-
-            var (leftMostCoordinate, rightMostCoordinate, lowerMostCoordinate, upperMostCoordinate) = GetPackingBoundaries();
-            var lowestBundleRadius = Math.Max(rightMostCoordinate - leftMostCoordinate,
-                upperMostCoordinate - lowerMostCoordinate) / 2;
-
-            bundleCenter.X = leftMostCoordinate + (rightMostCoordinate - leftMostCoordinate) / 2;
-            bundleCenter.Y = lowerMostCoordinate + (upperMostCoordinate - lowerMostCoordinate) / 2;
-
-            int actualBundleRadius;
-            (bundleCenter, actualBundleRadius) = PlaceBundle(lowestBundleRadius, bundleCenter);
-
-            //bundleCenter.X = leftMostCoordinate + actualBundleDiameter;
-            //bundleCenter.Y = lowerMostCoordinate + actualBundleDiameter;
-
-            return new PackingResultWrapper(new Circle(actualBundleRadius, bundleCenter) {Color =  Color.Lime}, _circlePlacements);
-        }
-
-        private (Point newBundleCenter, int actualBundleRadius) PlaceBundle(long lowestBundleRadius, Point bundleCenter)
+        public static (Point newBundleCenter, int actualBundleRadius) PlaceBundle(long lowestBundleRadius,
+            Point bundleCenter, List<Circle> circlePlacements, long gridSize, int roughnessMultiplier)
         {
             var leftMostInterval = bundleCenter.X - lowestBundleRadius / 4;
             var rightMostInterval = bundleCenter.X + lowestBundleRadius / 4;
@@ -74,30 +36,28 @@ namespace EPLAN_Cable_Packing
             var newBundleCenter = bundleCenter;
             var actualBundleRadius = (int) lowestBundleRadius;
 
-            for (; actualBundleRadius < _gridSize / 2; actualBundleRadius += _roughnessMultiplier)
+            for (; actualBundleRadius < gridSize; actualBundleRadius += roughnessMultiplier)
             {
                 var intersectsAnotherCircle = false;
 
                 foreach (var point in bundleCenter.GetInterval(new Point(leftMostInterval, lowerMostInterval),
-                    new Point(rightMostInterval, upperMostInterval), _roughnessMultiplier / 2))
+                    new Point(rightMostInterval, upperMostInterval), Math.Max(roughnessMultiplier / 2, 1)))
                 {
                     intersectsAnotherCircle = false;
 
-                    foreach (var circle in _circlePlacements)
+                    foreach (var circle in circlePlacements)
                     {
-                        if (SquareDistance(circle.Center, point) >
-                            Power(actualBundleRadius - circle.Radius, 2))
-                        {
-                            intersectsAnotherCircle = true;
-                            break;
-                        }
-                    }
+                        if (SquareDistance(circle.Center, point) <= Power(actualBundleRadius - circle.Radius, 2))
+                            continue;
 
-                    if (!intersectsAnotherCircle)
-                    {
-                        newBundleCenter = point;
+                        intersectsAnotherCircle = true;
                         break;
                     }
+
+                    if (intersectsAnotherCircle) continue;
+
+                    newBundleCenter = point;
+                    break;
                 }
 
                 if (!intersectsAnotherCircle) break;
@@ -106,33 +66,9 @@ namespace EPLAN_Cable_Packing
             return (newBundleCenter, actualBundleRadius);
         }
 
-        /*
-        private int GetActualBundleDiameter(long lowestBundleDiameter, Point bundleCenter)
-        {
-            var actualBundleDiameter = (int) lowestBundleDiameter;
-
-            for (; actualBundleDiameter < _gridSize / 2; actualBundleDiameter += _roughnessMultiplier)
-            {
-                var intersectsAnotherCircle = false;
-
-                foreach (var circle in _circlePlacements)
-                {
-                    if (SquareDistance(circle.Center, bundleCenter) > Power(actualBundleDiameter - circle.Diameter, 2))
-                    {
-                        intersectsAnotherCircle = true;
-                        break;
-                    }
-                }
-
-                if (!intersectsAnotherCircle) break;
-            }
-
-            return actualBundleDiameter;
-        }
-        */
-
-        private (long leftMostCoordinate, long rightMostCoordinate, long lowerMostCoordinate, long upperMostCoordinate)
-            GetPackingBoundaries()
+        public static (long leftMostCoordinate, long rightMostCoordinate, long lowerMostCoordinate, long
+            upperMostCoordinate)
+            GetPackingBoundaries(List<Circle> _circlePlacements)
         {
             var leftMostCoordinate = long.MaxValue;
             var rightMostCoordinate = long.MinValue;
@@ -154,29 +90,127 @@ namespace EPLAN_Cable_Packing
                     upperMostCoordinate = circle.Center.Y + circle.Radius;
             }
 
-            /*
-            for (var i = 0; i < _gridSize; i += _roughnessMultiplier)
+            return (leftMostCoordinate, rightMostCoordinate, lowerMostCoordinate, upperMostCoordinate);
+        }
+    }
+
+    /**
+     * Place circles onto a spiral pattern. Switch between large and small circles while preferring the larger ones.
+     */
+    internal class SinglePassPackingAlgorithm : IPackingAlgorithm
+    {
+        private List<Circle> _circlePlacements;
+        private long _gridSize;
+        private int _roughnessMultiplier;
+
+        public PackingResultWrapper Run(List<int> radii)
+        {
+            _gridSize = radii.Sum();
+            _roughnessMultiplier = (int) (1.0 / GetRoughnessMultiplier(_gridSize));
+            var bundleCenter = new Point(_gridSize / 2, _gridSize / 2);
+
+            radii.Sort((x, y) => y.CompareTo(x));
+            _circlePlacements = new List<Circle>();
+
+            var smallRadiiQueue = new Queue<int>();
+            var largeRadiiQueue = new Queue<int>();
+
+            for (var i = 0; i < radii.Count / 2; i++) largeRadiiQueue.Enqueue(radii[i]);
+
+            for (var i = radii.Count / 2; i < radii.Count; i++) smallRadiiQueue.Enqueue(radii[i]);
+
+            // Slowly spiral out of the center
+            foreach (var point in bundleCenter.GetSpiralInterval(new Point(0, 0),
+                new Point(_gridSize, _gridSize), Math.Max(_roughnessMultiplier / 2, 1)))
             {
-                for (var j = 0; j < _gridSize; j += _roughnessMultiplier)
+                if (largeRadiiQueue.Count == 0 && smallRadiiQueue.Count == 0) break;
+
+                var currentRadius = largeRadiiQueue.Peek();
+
+                // Attempt to place a large circle, upon failure attempt to place a small circle
+                for (var i = 0; i < 2; i++)
                 {
-                    if (!CoordinateContainsCircle(i, j)) continue;
+                    var intersectsAnotherCircle = false;
 
-                    if (i < leftMostCoordinate)
-                        leftMostCoordinate = i;
+                    foreach (var circle in _circlePlacements)
+                    {
+                        if (SquareDistance(circle.Center, point) >= Power(currentRadius + circle.Radius, 2))
+                            continue;
 
-                    if (i > rightMostCoordinate)
-                        rightMostCoordinate = i;
+                        intersectsAnotherCircle = true;
 
-                    if (j < lowerMostCoordinate)
-                        lowerMostCoordinate = j;
+                        if (smallRadiiQueue.Count > 0)
+                            currentRadius = smallRadiiQueue.Peek();
 
-                    if (j > upperMostCoordinate)
-                        upperMostCoordinate = j;
+                        break;
+                    }
+
+                    if (intersectsAnotherCircle) continue;
+
+                    if (largeRadiiQueue.Contains(currentRadius))
+                        largeRadiiQueue.Dequeue();
+                    else
+                        smallRadiiQueue.Dequeue();
+
+                    _circlePlacements.Add(new Circle(currentRadius, point));
+
+                    break;
                 }
             }
-            */
 
-            return (leftMostCoordinate, rightMostCoordinate, lowerMostCoordinate, upperMostCoordinate);
+            // Find the bundle center and radius
+            var (leftMostCoordinate, rightMostCoordinate, lowerMostCoordinate, upperMostCoordinate) =
+                GetPackingBoundaries(_circlePlacements);
+            var lowestBundleRadius = Math.Max(rightMostCoordinate - leftMostCoordinate,
+                                         upperMostCoordinate - lowerMostCoordinate) / 2;
+
+            bundleCenter.X = leftMostCoordinate + (rightMostCoordinate - leftMostCoordinate) / 2;
+            bundleCenter.Y = lowerMostCoordinate + (upperMostCoordinate - lowerMostCoordinate) / 2;
+
+            int actualBundleRadius;
+            (bundleCenter, actualBundleRadius) = PlaceBundle(lowestBundleRadius, bundleCenter, _circlePlacements,
+                _gridSize, _roughnessMultiplier);
+
+            return new PackingResultWrapper(new Circle(actualBundleRadius, bundleCenter) {Color = Color.Lime},
+                _circlePlacements);
+        }
+    }
+
+    /**
+     * Place the circle closest to the center of the containing circle while not touching
+     * any other circles.
+     */
+    internal class GreedyPackingAlgorithm : IPackingAlgorithm
+    {
+        private List<Circle> _circlePlacements;
+        private long _gridSize;
+        private int _roughnessMultiplier;
+
+        public PackingResultWrapper Run(List<int> radii)
+        {
+            _gridSize = radii.Sum();
+            _roughnessMultiplier = (int) (1.0 / GetRoughnessMultiplier(_gridSize));
+            var bundleCenter = new Point(_gridSize / 2, _gridSize / 2);
+
+            radii.Sort((x, y) => y.CompareTo(x));
+            _circlePlacements = new List<Circle>();
+
+            PlaceCircles(radii, bundleCenter);
+
+            var (leftMostCoordinate, rightMostCoordinate, lowerMostCoordinate, upperMostCoordinate) =
+                GetPackingBoundaries(_circlePlacements);
+            var lowestBundleRadius = Math.Max(rightMostCoordinate - leftMostCoordinate,
+                                         upperMostCoordinate - lowerMostCoordinate) / 2;
+
+            bundleCenter.X = leftMostCoordinate + (rightMostCoordinate - leftMostCoordinate) / 2;
+            bundleCenter.Y = lowerMostCoordinate + (upperMostCoordinate - lowerMostCoordinate) / 2;
+
+            int actualBundleRadius;
+            (bundleCenter, actualBundleRadius) = PlaceBundle(lowestBundleRadius, bundleCenter, _circlePlacements,
+                _gridSize, _roughnessMultiplier);
+
+            return new PackingResultWrapper(new Circle(actualBundleRadius, bundleCenter) {Color = Color.Lime},
+                _circlePlacements);
         }
 
         private void PlaceCircles(List<int> radii, Point bundleCenter)
@@ -186,27 +220,25 @@ namespace EPLAN_Cable_Packing
                 var bestSquareDistance = long.MaxValue;
                 var bestCenter = new Point(int.MaxValue, int.MaxValue);
 
-                // x axis
+                // X axis
                 for (var i = 0; i < _gridSize; i += _roughnessMultiplier)
+                    // Y axis
+                for (var j = 0; j < _gridSize; j += _roughnessMultiplier)
                 {
-                    // y axis
-                    for (var j = 0; j < _gridSize; j += _roughnessMultiplier)
-                    {
-                        // This point in the grid is already occupied
-                        if (CoordinateContainsCircle(i, j)) continue;
+                    // This point in the grid is already occupied
+                    if (CoordinateContainsCircle(i, j)) continue;
 
-                        // There is an already better point (i.e. closer to the center) that has been discovered
-                        if (!(SquareDistance(new Point(i, j), bundleCenter) < bestSquareDistance)) continue;
+                    // There is an already better point (i.e. closer to the center) that has been discovered
+                    if (!(SquareDistance(new Point(i, j), bundleCenter) < bestSquareDistance)) continue;
 
-                        var intersectsAnotherCircle = CircleContainsAnotherCircle(radius, i, j);
+                    var intersectsAnotherCircle = CircleContainsAnotherCircle(radius, i, j);
 
-                        // The circle would intersect another circle if it were to be placed here
-                        if (intersectsAnotherCircle) continue;
+                    // The circle would intersect another circle if it were to be placed here
+                    if (intersectsAnotherCircle) continue;
 
-                        // This is the best location for this circle yet
-                        bestCenter = new Point(i, j);
-                        bestSquareDistance = SquareDistance(new Point(i, j), bundleCenter);
-                    }
+                    // This is the best location for this circle yet
+                    bestCenter = new Point(i, j);
+                    bestSquareDistance = SquareDistance(new Point(i, j), bundleCenter);
                 }
 
                 if (!(bestSquareDistance < long.MaxValue)) throw new NotImplementedException();
@@ -217,35 +249,9 @@ namespace EPLAN_Cable_Packing
 
         private bool CoordinateContainsCircle(long coordinateX, long coordinateY)
         {
-            //var containsAnotherCircle = false;
-
             foreach (var circle in _circlePlacements)
-            {
-                /*
-                for (var currentDiameter = 1; currentDiameter <= circle.Diameter; currentDiameter += _multiplier)
-                {
-                    for (var currentAngle = 0; currentAngle < 360; currentAngle += 10)
-                    {
-                        var x = (int)(currentDiameter * Math.Cos(currentAngle * Math.PI / 180));
-                        var y = (int)(currentDiameter * Math.Sin(currentAngle * Math.PI / 180));
-
-                        if (circle.Center.X + x != coordinateX && circle.Center.Y + y != coordinateY) continue;
-                        
-                        containsAnotherCircle = true;
-                        break;
-                    }
-
-                    if (containsAnotherCircle)
-                        break;
-                }
-
-                if (containsAnotherCircle)
-                    break;
-                */
-
                 if (SquareDistance(new Point(coordinateX, coordinateY), circle.Center) < Power(circle.Radius, 2))
                     return true;
-            }
 
             return false;
         }
@@ -253,212 +259,172 @@ namespace EPLAN_Cable_Packing
         private bool CircleContainsAnotherCircle(int radius, long circleCenterX, long circleCenterY)
         {
             foreach (var circle in _circlePlacements)
-            {
                 if (SquareDistance(new Point(circleCenterX, circleCenterY), circle.Center) <
                     Power(circle.Radius + radius, 2))
                     return true;
-            }
 
             return false;
-            /*
-            var intersectsAnotherCircle = false;
-
-            for (var currentDiameter = 1; currentDiameter <= diameter; currentDiameter += _multiplier)
-            {
-                for (var currentAngle = 0; currentAngle < 360; currentAngle += 10)
-                {
-                    var x = (int) (currentDiameter * Math.Cos(currentAngle * Math.PI / 180));
-                    var y = (int) (currentDiameter * Math.Sin(currentAngle * Math.PI / 180));
-
-                    // The circle reaches beyond the bounds of the grid
-                    if (circleCenterX + x < 0 || circleCenterX + x >= _gridSize)
-                    {
-                        intersectsAnotherCircle = true;
-                        break;
-                    }
-
-                    // The circle reaches beyond the bounds of the grid
-                    if (circleCenterY + y < 0 || circleCenterY + y >= _gridSize)
-                    {
-                        intersectsAnotherCircle = true;
-                        break;
-                    }
-
-                    // The circle intersects another circle
-                    if (!CoordinateContainsCircle(circleCenterX + x, circleCenterY + y)) continue;
-
-                    intersectsAnotherCircle = true;
-                    break;
-                }
-
-                if (intersectsAnotherCircle)
-                    break;
-            }
-
-            return intersectsAnotherCircle;
-            */
         }
     }
 
-    internal class LinearProgrammingPackingAlgorithm : IPackingAlgorithm
+    /**
+     * Solve a mixed integer program to achieve an approximation in polynomial time - O(n^2) constraints and variables.
+     * CURRENTLY FAILS - the model is not feasible
+     */
+    internal class IntegerProgrammingPackingAlgorithm : IPackingAlgorithm
     {
         public PackingResultWrapper Run(List<int> radii)
         {
             var model = new CpModel();
-            //var solver = Solver.CreateSolver("CirclePacking", "CBC_MIXED_INTEGER_PROGRAMMING");
 
             const int dimension = 2;
             var domainConstraint = 2 * radii.Sum();
 
-            // promenne
+            // ----------------------------------------------------------------
+            // Variable declaration
+            // ----------------------------------------------------------------
 
-            // vysledny polomer
+            // Integer bundle radius, 0 <= x <= 2 * the sum of radii
             var bundleRadius = model.NewIntVar(0, domainConstraint, "r");
 
+            // Coordinates (x, y) of the centers of inner circles, -2 * the sum of radii <= x, y <= 2 * the sum of radii
             var circleCenters = new IntVar[radii.Count, dimension];
             for (var i = 0; i < radii.Count; i++)
-            {
-                for (var j = 0; j < dimension; j++)
-                {
-                    circleCenters[i, j] = model.NewIntVar(-domainConstraint, domainConstraint, $"alpha_{i},{j}");
-                    //alpha[i, j] = solver.MakeIntVar(0.0, double.PositiveInfinity, $"alpha_{i},{j}");
-                }
-            }
+            for (var j = 0; j < dimension; j++)
+                circleCenters[i, j] = model.NewIntVar(-domainConstraint, domainConstraint, $"alpha_{i},{j}");
 
+            // Slack variable - Coordinates (x, y) of the centers of inner circles squared, 0 <= x, y < infinity
             var circleCentersSquared = new IntVar[radii.Count, dimension];
             for (var i = 0; i < radii.Count; i++)
-            {
-                for (var j = 0; j < dimension; j++)
-                {
-                    circleCentersSquared[i, j] = model.NewIntVar(0, int.MaxValue, $"s_alpha_{i},{j}");
-                    //alpha[i, j] = solver.MakeIntVar(0.0, double.PositiveInfinity, $"alpha_{i},{j}");
-                }
-            }
+            for (var j = 0; j < dimension; j++)
+                circleCentersSquared[i, j] = model.NewIntVar(0, uint.MaxValue, $"s_alpha_{i},{j}");
 
+            // Inner circle radii - input
             var circleRadii = new IntVar[radii.Count];
-            for (var i = 0; i < radii.Count; i++)
-            {
-                circleRadii[i] = model.NewIntVar(radii[i], radii[i], $"r_{i}");
-            }
+            for (var i = 0; i < radii.Count; i++) circleRadii[i] = model.NewIntVar(radii[i], radii[i], $"r_{i}");
 
+            // Slack variable - bundle radius minus the inner circle radius, -2 * the sum of radii <= x <= 2 * the sum of radii
             var circleRadiiSlack = new IntVar[radii.Count];
             for (var i = 0; i < radii.Count; i++)
-            {
                 circleRadiiSlack[i] = model.NewIntVar(-domainConstraint, domainConstraint, $"s_r_{i}");
-            }
 
+            // Slack variable - bundle radius minus the inner circle radius, 0 <= x < infinity
             var circleRadiiSlackSquared = new IntVar[radii.Count];
             for (var i = 0; i < radii.Count; i++)
-            {
-                circleRadiiSlackSquared[i] = model.NewIntVar(0, int.MaxValue, $"s_r_s_{i}");
-            }
+                circleRadiiSlackSquared[i] = model.NewIntVar(0, uint.MaxValue, $"s_r_s_{i}");
 
+            // Slack variable - The difference of the centers of two inner circles on a single axis,
+            // -2 * the sum of radii <= x <= 2 * the sum of radii
             var circleDistances = new IntVar[radii.Count, radii.Count, dimension];
             for (var i = 0; i < radii.Count; i++)
-            {
-                for (var j = 0; j < radii.Count; j++)
-                {
-                    for (var k = 0; k < dimension; k++)
-                    {
-                        circleDistances[i, j, k] = model.NewIntVar(-domainConstraint, domainConstraint, $"s_d_{i}_{j}_{k}");
-                    }
-                }
-            }
+            for (var j = 0; j < radii.Count; j++)
+            for (var k = 0; k < dimension; k++)
+                circleDistances[i, j, k] = model.NewIntVar(-domainConstraint, domainConstraint, $"s_d_{i}_{j}_{k}");
 
+            // The square distance of the centers of two inner circles on a single axis, 0 <= x < infinity
             var circleDistancesSquared = new IntVar[radii.Count, radii.Count, dimension];
             for (var i = 0; i < radii.Count; i++)
-            {
-                for (var j = 0; j < radii.Count; j++)
-                {
-                    for (var k = 0; k < dimension; k++)
-                    {
-                        circleDistancesSquared[i, j, k] = model.NewIntVar(0, int.MaxValue, $"s_d_s_{i}_{j}_{k}");
-                    }
-                }
-            }
+            for (var j = 0; j < radii.Count; j++)
+            for (var k = 0; k < dimension; k++)
+                circleDistancesSquared[i, j, k] = model.NewIntVar(0, uint.MaxValue, $"s_d_s_{i}_{j}_{k}");
 
+            // The sum of radii of two inner circles, 0 <= x <= 2 * the sum of radii
             var radiiSum = new IntVar[radii.Count, radii.Count];
             for (var i = 0; i < radii.Count; i++)
-            {
-                for (var j = 0; j < radii.Count; j++)
-                {
-                    radiiSum[i, j] = model.NewIntVar(-domainConstraint, domainConstraint, $"s_rs_{i}_{j}");
-                }
-            }
+            for (var j = 0; j < radii.Count; j++)
+                radiiSum[i, j] = model.NewIntVar(0, domainConstraint, $"s_rs_{i}_{j}");
 
+            // Slack variable - The square of the sum of radii of two inner circles, 0 <= x <= infinity
             var radiiSumSquared = new IntVar[radii.Count, radii.Count];
             for (var i = 0; i < radii.Count; i++)
-            {
-                for (var j = 0; j < radii.Count; j++)
-                {
-                    radiiSumSquared[i, j] = model.NewIntVar(0, int.MaxValue, $"s_rs_s_{i}_{j}");
-                }
-            }
+            for (var j = 0; j < radii.Count; j++)
+                radiiSumSquared[i, j] = model.NewIntVar(0, uint.MaxValue, $"s_rs_s_{i}_{j}");
 
-            // (1) All inner circles are fully contained in the bundle
+            // ----------------------------------------------------------------
+            // Constraint declaration
+            // ----------------------------------------------------------------
+
+            // (1) Bundle radius lower bound
+            model.AddMaxEquality(bundleRadius, circleRadii);
+
+
+            // (2) All inner circles are fully contained in the bundle
             for (var i = 0; i < radii.Count; i++)
             {
+                // The solver doesn't support the multiplication of negative variables! Further constraints or domain limitation is needed.
+                /*
+                model.Add(circleCenters[i, 0] >= 0);
+                model.Add(circleCenters[i, 1] >= 0);
+                model.Add(circleRadiiSlack[i] >= 0);
+                */
+
                 model.AddProdEquality(circleCentersSquared[i, 0],
                     new List<IntVar> {circleCenters[i, 0], circleCenters[i, 0]});
 
                 model.AddProdEquality(circleCentersSquared[i, 1],
-                    new List<IntVar> { circleCenters[i, 1], circleCenters[i, 1] });
+                    new List<IntVar> {circleCenters[i, 1], circleCenters[i, 1]});
 
-                model.Add(circleRadiiSlack[i] == bundleRadius - circleRadii[i]);
-                model.AddProdEquality(circleRadiiSlackSquared[i], new List<IntVar> { circleRadiiSlack[i], circleRadiiSlack[i] });
+                // NOT FEASIBLE with this constraint
+                model.Add(bundleRadius == circleRadiiSlack[i] + circleRadii[i]);
 
+                model.AddProdEquality(circleRadiiSlackSquared[i], new[] {circleRadiiSlack[i], circleRadiiSlack[i]});
+
+                // NOT FEASIBLE with this constraint
                 model.Add(circleCentersSquared[i, 0] + circleCentersSquared[i, 1] <= circleRadiiSlackSquared[i]);
             }
 
-            // (2) None inner circle overlaps another inner circle
+
+            // (3) No two inner circles overlap
             for (var i = 0; i < radii.Count; i++)
+            for (var j = 0; j < radii.Count; j++)
             {
-                for (var j = 0; j < radii.Count; j++)
-                {
-                    if (i == j) continue;
+                if (i == j) continue;
 
-                    model.Add(circleDistances[i, j, 0] == circleCenters[i, 0] - circleCenters[j, 0]);
-                    model.Add(circleDistances[i, j, 1] == circleCenters[i, 1] - circleCenters[j, 1]);
+                // The solver doesn't support the multiplication of negative variables! Further constraints or domain limitation is needed.
+                /*
+                    model.Add(circleDistances[i, j, 0] >= 0);
+                    model.Add(circleDistances[i, j, 1] >= 0);
+                    */
 
-                    model.AddProdEquality(circleDistancesSquared[i, j, 0],
-                        new List<IntVar> { circleDistances[i, j, 0], circleDistances[i, j, 0] });
+                model.Add(circleDistances[i, j, 0] == circleCenters[i, 0] - circleCenters[j, 0]);
+                model.Add(circleDistances[i, j, 1] == circleCenters[i, 1] - circleCenters[j, 1]);
 
-                    model.AddProdEquality(circleDistancesSquared[i, j, 1],
-                        new List<IntVar> {circleDistances[i, j, 1], circleDistances[i, j, 1]});
+                model.AddProdEquality(circleDistancesSquared[i, j, 0],
+                    new List<IntVar> {circleDistances[i, j, 0], circleDistances[i, j, 0]});
 
-                    model.Add(radiiSum[i, j] == radii[i] + radii[j]);
-                    model.AddProdEquality(radiiSumSquared[i, j], new List<IntVar> {radiiSum[i, j], radiiSum[i, j]});
+                model.AddProdEquality(circleDistancesSquared[i, j, 1],
+                    new List<IntVar> {circleDistances[i, j, 1], circleDistances[i, j, 1]});
 
-                    model.Add(circleDistancesSquared[i, j, 0] + circleDistancesSquared[i, j, 1] >= radiiSumSquared[i, j]);
-                }
+                model.Add(radiiSum[i, j] == circleRadii[i] + circleRadii[j]);
+
+                // NOT FEASIBLE with this constraint
+                model.AddProdEquality(radiiSumSquared[i, j], new List<IntVar> {radiiSum[i, j], radiiSum[i, j]});
+
+                model.Add(circleDistancesSquared[i, j, 0] + circleDistancesSquared[i, j, 1] >= radiiSumSquared[i, j]);
             }
 
-            // (3) Bundle radius lower bound
-            model.AddMaxEquality(bundleRadius, circleRadii);
 
+            // ----------------------------------------------------------------
+            // Target declaration
+            // ----------------------------------------------------------------
+
+            // Minimize the radius of the bundle
             model.Minimize(bundleRadius);
 
-            CpSolver solver = new CpSolver();
-            CpSolverStatus status = solver.Solve(model);
-            //solver.Minimize(bundleRadius);
+            var solver = new CpSolver();
+            var status = solver.Solve(model);
 
-            if (status == CpSolverStatus.Feasible)
-            {
-                Console.WriteLine("r = " + solver.Value(bundleRadius));
-            }
+            if (status != CpSolverStatus.Feasible && status != CpSolverStatus.Optimal)
+                throw new NotImplementedException();
 
             var bundle = new Circle((int) solver.Value(bundleRadius), new Point(0, 0));
             var innerCircles = new List<Circle>();
 
             for (var i = 0; i < radii.Count; i++)
-            {
-                innerCircles.Add(new Circle((int) solver.Value(circleRadii[i]), 
-                        new Point(solver.Value(circleCenters[i, 0]), solver.Value(circleCenters[i, 1]))));
-            }
+                innerCircles.Add(new Circle((int) solver.Value(circleRadii[i]),
+                    new Point(solver.Value(circleCenters[i, 0]), solver.Value(circleCenters[i, 1]))));
 
-            var returnValue = new PackingResultWrapper(bundle, innerCircles);
-
-            return returnValue;
+            return new PackingResultWrapper(bundle, innerCircles);
         }
     }
 

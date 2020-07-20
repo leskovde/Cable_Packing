@@ -11,10 +11,15 @@ namespace EPLAN_Cable_Packing
         public static int Precision(this decimal decimalValue)
         {
             return decimalValue.ToString(CultureInfo.InvariantCulture)
-                .TrimEnd('0')
                 .SkipWhile(c => c != '.')
                 .Skip(1)
                 .Count();
+        }
+
+        public static int Digits(this decimal decimalValue)
+        {
+            return decimalValue.ToString(CultureInfo.InvariantCulture)
+                .Count(c => c != '.');
         }
     }
 

@@ -15,7 +15,7 @@ namespace EPLAN_Cable_Packing
             Y = y;
         }
 
-        public IEnumerable<Point> GetInterval(Point from, Point to, int step)
+        public IEnumerable<Point> GetInterval(Point from, Point to, long step)
         {
             var tempPoint = new Point(from.X, from.Y);
 
@@ -35,7 +35,7 @@ namespace EPLAN_Cable_Packing
             }
         }
 
-        public IEnumerable<Point> GetSpiralInterval(Point from, Point to, int step)
+        public IEnumerable<Point> GetSpiralInterval(Point from, Point to, long step)
         {
             var radius = to.X - from.X / 2;
             var centerPoint = new Point(from.X + radius, from.Y + radius);
@@ -67,11 +67,11 @@ namespace EPLAN_Cable_Packing
 
     internal struct Circle
     {
-        public int Radius;
+        public long Radius;
         public Color Color;
         public Point Center;
 
-        public Circle(int radius, Point center)
+        public Circle(long radius, Point center)
         {
             Radius = radius;
             Center = center;

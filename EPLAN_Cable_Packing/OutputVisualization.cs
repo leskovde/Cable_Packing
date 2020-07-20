@@ -95,8 +95,8 @@ namespace EPLAN_Cable_Packing
 
             var inputFile = FileName.Text;
 
-            // Enhance the precision of the input at least 1000 fold
-            var maxPrecision = 3;
+            var maxPrecision = 0;
+            var longestInputNumberDigits = 0;
 
             var radii = new List<decimal>();
 
@@ -110,10 +110,26 @@ namespace EPLAN_Cable_Packing
 
                     if (entry.Value.Precision() > maxPrecision)
                         maxPrecision = entry.Value.Precision();
+
+                    if (entry.Value.Digits() > longestInputNumberDigits)
+                        longestInputNumberDigits = entry.Value.Digits();
                 }
             }
 
-            var integerRadii = radii.Select(radius => (int) (radius * (decimal) Math.Pow(10, maxPrecision))).ToList();
+            var integerRadii = radii.Select(radius => (long) (radius * (decimal) Math.Pow(10, maxPrecision))).ToList();
+            
+            // Enhance the precision of the input to nearly 10^5
+            var additionalEnhancement = 0;
+
+            while ((integerRadii.Sum()) < 80000)
+            {
+                for (var i = 0; i < integerRadii.Count; i++)
+                    integerRadii[i] *= 10;
+
+                additionalEnhancement++;
+            }
+
+            maxPrecision += additionalEnhancement;
 
             var cablePacking = new CablePacking(factories[AlgorithmType].Create());
             var result = cablePacking.GetCablePacking(integerRadii);

@@ -22,11 +22,11 @@ namespace EPLAN_Cable_Packing
 
         public static double GetRoughnessMultiplier(long inputSize)
         {
-            return Math.Min(1, 1.25 * Math.Pow(inputSize, -0.5));
+            return Math.Min(Math.Min(1, 1.25 * Math.Pow(inputSize, -0.5)), 1000.0 / inputSize);
         }
 
-        public static (Point newBundleCenter, int actualBundleRadius) PlaceBundle(long lowestBundleRadius,
-            Point bundleCenter, List<Circle> circlePlacements, long gridSize, int roughnessMultiplier)
+        public static (Point newBundleCenter, long actualBundleRadius) PlaceBundle(long lowestBundleRadius,
+            Point bundleCenter, List<Circle> circlePlacements, long gridSize, long roughnessMultiplier)
         {
             var leftMostInterval = bundleCenter.X - lowestBundleRadius / 4;
             var rightMostInterval = bundleCenter.X + lowestBundleRadius / 4;
@@ -34,7 +34,7 @@ namespace EPLAN_Cable_Packing
             var upperMostInterval = bundleCenter.Y + lowestBundleRadius / 4;
 
             var newBundleCenter = bundleCenter;
-            var actualBundleRadius = (int) lowestBundleRadius;
+            var actualBundleRadius = (long) lowestBundleRadius;
 
             for (; actualBundleRadius < gridSize; actualBundleRadius += roughnessMultiplier)
             {
@@ -99,17 +99,17 @@ namespace EPLAN_Cable_Packing
      */
     internal class SinglePassPackingAlgorithm : IPackingAlgorithm
     {
-        public PackingResultWrapper Run(List<int> radii)
+        public PackingResultWrapper Run(List<long> radii)
         {
-            long gridSize = radii.Sum();
-            var roughnessMultiplier = (int) (1.0 / GetRoughnessMultiplier(gridSize));
+            var gridSize = radii.Sum();
+            var roughnessMultiplier = (long) (1.0 / GetRoughnessMultiplier(gridSize));
             var bundleCenter = new Point(gridSize / 2, gridSize / 2);
 
             radii.Sort((x, y) => y.CompareTo(x));
             var circlePlacements = new List<Circle>();
 
-            var smallRadiiQueue = new Queue<int>();
-            var largeRadiiQueue = new Queue<int>();
+            var smallRadiiQueue = new Queue<long>();
+            var largeRadiiQueue = new Queue<long>();
 
             for (var i = 0; i < radii.Count / 2; i++) largeRadiiQueue.Enqueue(radii[i]);
 
@@ -121,9 +121,9 @@ namespace EPLAN_Cable_Packing
             {
                 if (largeRadiiQueue.Count == 0 && smallRadiiQueue.Count == 0) break;
 
-                var currentRadius = largeRadiiQueue.Peek();
+                var currentRadius = largeRadiiQueue.Count > 0 ? largeRadiiQueue.Peek() : smallRadiiQueue.Peek();
 
-                // Attempt to place a large circle, upon failure attempt to place a small circle
+                    // Attempt to place a large circle, upon failure attempt to place a small circle
                 for (var i = 0; i < 2; i++)
                 {
                     var intersectsAnotherCircle = false;
@@ -143,7 +143,7 @@ namespace EPLAN_Cable_Packing
 
                     if (intersectsAnotherCircle) continue;
 
-                    if (largeRadiiQueue.Contains(currentRadius))
+                    if (largeRadiiQueue.Count != 0 && largeRadiiQueue.Peek() == currentRadius)
                         largeRadiiQueue.Dequeue();
                     else
                         smallRadiiQueue.Dequeue();
@@ -163,7 +163,7 @@ namespace EPLAN_Cable_Packing
             bundleCenter.X = leftMostCoordinate + (rightMostCoordinate - leftMostCoordinate) / 2;
             bundleCenter.Y = lowerMostCoordinate + (upperMostCoordinate - lowerMostCoordinate) / 2;
 
-            int actualBundleRadius;
+            long actualBundleRadius;
             (bundleCenter, actualBundleRadius) = PlaceBundle(lowestBundleRadius, bundleCenter, circlePlacements,
                 gridSize, roughnessMultiplier);
 
@@ -180,12 +180,12 @@ namespace EPLAN_Cable_Packing
     {
         private List<Circle> _circlePlacements;
         private long _gridSize;
-        private int _roughnessMultiplier;
+        private long _roughnessMultiplier;
 
-        public PackingResultWrapper Run(List<int> radii)
+        public PackingResultWrapper Run(List<long> radii)
         {
             _gridSize = radii.Sum();
-            _roughnessMultiplier = (int) (1.0 / GetRoughnessMultiplier(_gridSize));
+            _roughnessMultiplier = (long) (1.0 / GetRoughnessMultiplier(_gridSize));
             var bundleCenter = new Point(_gridSize / 2, _gridSize / 2);
 
             radii.Sort((x, y) => y.CompareTo(x));
@@ -201,7 +201,7 @@ namespace EPLAN_Cable_Packing
             bundleCenter.X = leftMostCoordinate + (rightMostCoordinate - leftMostCoordinate) / 2;
             bundleCenter.Y = lowerMostCoordinate + (upperMostCoordinate - lowerMostCoordinate) / 2;
 
-            int actualBundleRadius;
+            long actualBundleRadius;
             (bundleCenter, actualBundleRadius) = PlaceBundle(lowestBundleRadius, bundleCenter, _circlePlacements,
                 _gridSize, _roughnessMultiplier);
 
@@ -209,33 +209,33 @@ namespace EPLAN_Cable_Packing
                 _circlePlacements);
         }
 
-        private void PlaceCircles(List<int> radii, Point bundleCenter)
+        private void PlaceCircles(List<long> radii, Point bundleCenter)
         {
             foreach (var radius in radii)
             {
                 var bestSquareDistance = long.MaxValue;
-                var bestCenter = new Point(int.MaxValue, int.MaxValue);
+                var bestCenter = new Point(long.MaxValue, long.MaxValue);
 
                 // X axis
-                for (var i = 0; i < _gridSize; i += _roughnessMultiplier)
+                for (long i = 0; i < _gridSize; i += _roughnessMultiplier)
                     // Y axis
-                for (var j = 0; j < _gridSize; j += _roughnessMultiplier)
-                {
-                    // This point in the grid is already occupied
-                    if (CoordinateContainsCircle(i, j)) continue;
+                    for (long j = 0; j < _gridSize; j += _roughnessMultiplier)
+                    {
+                        // This point in the grid is already occupied
+                        if (CoordinateContainsCircle(i, j)) continue;
 
-                    // There is an already better point (i.e. closer to the center) that has been discovered
-                    if (!(SquareDistance(new Point(i, j), bundleCenter) < bestSquareDistance)) continue;
+                        // There is an already better point (i.e. closer to the center) that has been discovered
+                        if (!(SquareDistance(new Point(i, j), bundleCenter) < bestSquareDistance)) continue;
 
-                    var intersectsAnotherCircle = CircleContainsAnotherCircle(radius, i, j);
+                        var intersectsAnotherCircle = CircleContainsAnotherCircle(radius, i, j);
 
-                    // The circle would intersect another circle if it were to be placed here
-                    if (intersectsAnotherCircle) continue;
+                        // The circle would intersect another circle if it were to be placed here
+                        if (intersectsAnotherCircle) continue;
 
-                    // This is the best location for this circle yet
-                    bestCenter = new Point(i, j);
-                    bestSquareDistance = SquareDistance(new Point(i, j), bundleCenter);
-                }
+                        // This is the best location for this circle yet
+                        bestCenter = new Point(i, j);
+                        bestSquareDistance = SquareDistance(new Point(i, j), bundleCenter);
+                    }
 
                 if (!(bestSquareDistance < long.MaxValue)) throw new NotImplementedException();
 
@@ -252,7 +252,7 @@ namespace EPLAN_Cable_Packing
             return false;
         }
 
-        private bool CircleContainsAnotherCircle(int radius, long circleCenterX, long circleCenterY)
+        private bool CircleContainsAnotherCircle(long radius, long circleCenterX, long circleCenterY)
         {
             foreach (var circle in _circlePlacements)
                 if (SquareDistance(new Point(circleCenterX, circleCenterY), circle.Center) <
@@ -269,7 +269,7 @@ namespace EPLAN_Cable_Packing
      */
     internal class IntegerProgrammingPackingAlgorithm : IPackingAlgorithm
     {
-        public PackingResultWrapper Run(List<int> radii)
+        public PackingResultWrapper Run(List<long> radii)
         {
             var model = new CpModel();
 
@@ -413,11 +413,11 @@ namespace EPLAN_Cable_Packing
             if (status != CpSolverStatus.Feasible && status != CpSolverStatus.Optimal)
                 throw new NotImplementedException();
 
-            var bundle = new Circle((int) solver.Value(bundleRadius), new Point(0, 0));
+            var bundle = new Circle((long) solver.Value(bundleRadius), new Point(0, 0));
             var innerCircles = new List<Circle>();
 
             for (var i = 0; i < radii.Count; i++)
-                innerCircles.Add(new Circle((int) solver.Value(circleRadii[i]),
+                innerCircles.Add(new Circle((long) solver.Value(circleRadii[i]),
                     new Point(solver.Value(circleCenters[i, 0]), solver.Value(circleCenters[i, 1]))));
 
             return new PackingResultWrapper(bundle, innerCircles);
@@ -426,7 +426,7 @@ namespace EPLAN_Cable_Packing
 
     internal interface IPackingAlgorithm
     {
-        PackingResultWrapper Run(List<int> radii);
+        PackingResultWrapper Run(List<long> radii);
     }
 
     internal class CablePacking
@@ -438,7 +438,7 @@ namespace EPLAN_Cable_Packing
             _packingAlgorithm = packingAlgorithm;
         }
 
-        public PackingResultWrapper GetCablePacking(List<int> diameters)
+        public PackingResultWrapper GetCablePacking(List<long> diameters)
         {
             return _packingAlgorithm.Run(diameters);
         }

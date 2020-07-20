@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -27,50 +28,50 @@ namespace EPLAN_Cable_Packing
             return (Power(point1.X - point2.X, 2) + Power(point1.Y - point2.Y, 2));
         }
 
-        private long GetRoughnessMultiplier(long inputSize)
+        private static long GetRoughnessMultiplier(long inputSize)
         {
             return inputSize / 1000;
             //return inputSize / (300 + 7000 / (1 + Power(inputSize / 40000, 40)));
         }
 
-        public PackingResultWrapper Run(List<int> diameters)
+        public PackingResultWrapper Run(List<int> radii)
         {
-            _gridSize = diameters.Sum() * 2;
+            _gridSize = radii.Sum() * 2;
             _roughnessMultiplier = (int) GetRoughnessMultiplier(_gridSize);
             var bundleCenter = new Point(_gridSize / 2, _gridSize / 2);
 
-            diameters.Sort((x, y) => y.CompareTo(x));
+            radii.Sort((x, y) => y.CompareTo(x));
             _circlePlacements = new List<Circle>();
 
-            PlaceCircles(diameters, bundleCenter);
+            PlaceCircles(radii, bundleCenter);
 
             var (leftMostCoordinate, rightMostCoordinate, lowerMostCoordinate, upperMostCoordinate) = GetPackingBoundaries();
-            var lowestBundleDiameter = Math.Max(rightMostCoordinate - leftMostCoordinate,
+            var lowestBundleRadius = Math.Max(rightMostCoordinate - leftMostCoordinate,
                 upperMostCoordinate - lowerMostCoordinate) / 2;
 
             bundleCenter.X = leftMostCoordinate + (rightMostCoordinate - leftMostCoordinate) / 2;
             bundleCenter.Y = lowerMostCoordinate + (upperMostCoordinate - lowerMostCoordinate) / 2;
 
-            int actualBundleDiameter;
-            (bundleCenter, actualBundleDiameter) = PlaceBundle(lowestBundleDiameter, bundleCenter);
+            int actualBundleRadius;
+            (bundleCenter, actualBundleRadius) = PlaceBundle(lowestBundleRadius, bundleCenter);
 
             //bundleCenter.X = leftMostCoordinate + actualBundleDiameter;
             //bundleCenter.Y = lowerMostCoordinate + actualBundleDiameter;
 
-            return new PackingResultWrapper(new Circle(actualBundleDiameter, bundleCenter), _circlePlacements);
+            return new PackingResultWrapper(new Circle(actualBundleRadius, bundleCenter) {Color =  Color.Lime}, _circlePlacements);
         }
 
-        private (Point, int) PlaceBundle(long lowestBundleDiameter, Point bundleCenter)
+        private (Point newBundleCenter, int actualBundleRadius) PlaceBundle(long lowestBundleRadius, Point bundleCenter)
         {
-            var leftMostInterval = bundleCenter.X - lowestBundleDiameter / 4;
-            var rightMostInterval = bundleCenter.X + lowestBundleDiameter / 4;
-            var lowerMostInterval = bundleCenter.Y - lowestBundleDiameter / 4;
-            var upperMostInterval = bundleCenter.Y + lowestBundleDiameter / 4;
+            var leftMostInterval = bundleCenter.X - lowestBundleRadius / 4;
+            var rightMostInterval = bundleCenter.X + lowestBundleRadius / 4;
+            var lowerMostInterval = bundleCenter.Y - lowestBundleRadius / 4;
+            var upperMostInterval = bundleCenter.Y + lowestBundleRadius / 4;
 
             var newBundleCenter = bundleCenter;
-            var actualBundleDiameter = (int) lowestBundleDiameter;
+            var actualBundleRadius = (int) lowestBundleRadius;
 
-            for (; actualBundleDiameter < _gridSize / 2; actualBundleDiameter += _roughnessMultiplier)
+            for (; actualBundleRadius < _gridSize / 2; actualBundleRadius += _roughnessMultiplier)
             {
                 var intersectsAnotherCircle = false;
 
@@ -82,7 +83,7 @@ namespace EPLAN_Cable_Packing
                     foreach (var circle in _circlePlacements)
                     {
                         if (SquareDistance(circle.Center, point) >
-                            Power(actualBundleDiameter - circle.Diameter, 2))
+                            Power(actualBundleRadius - circle.Radius, 2))
                         {
                             intersectsAnotherCircle = true;
                             break;
@@ -99,7 +100,7 @@ namespace EPLAN_Cable_Packing
                 if (!intersectsAnotherCircle) break;
             }
 
-            return (newBundleCenter, actualBundleDiameter);
+            return (newBundleCenter, actualBundleRadius);
         }
 
         /*
@@ -137,17 +138,17 @@ namespace EPLAN_Cable_Packing
 
             foreach (var circle in _circlePlacements)
             {
-                if (circle.Center.X - circle.Diameter < leftMostCoordinate)
-                    leftMostCoordinate = circle.Center.X - circle.Diameter;
+                if (circle.Center.X - circle.Radius < leftMostCoordinate)
+                    leftMostCoordinate = circle.Center.X - circle.Radius;
 
-                if (circle.Center.X + circle.Diameter > rightMostCoordinate)
-                    rightMostCoordinate = circle.Center.X + circle.Diameter;
+                if (circle.Center.X + circle.Radius > rightMostCoordinate)
+                    rightMostCoordinate = circle.Center.X + circle.Radius;
 
-                if (circle.Center.Y - circle.Diameter < lowerMostCoordinate)
-                    lowerMostCoordinate = circle.Center.Y - circle.Diameter;
+                if (circle.Center.Y - circle.Radius < lowerMostCoordinate)
+                    lowerMostCoordinate = circle.Center.Y - circle.Radius;
 
-                if (circle.Center.Y + circle.Diameter > upperMostCoordinate)
-                    upperMostCoordinate = circle.Center.Y + circle.Diameter;
+                if (circle.Center.Y + circle.Radius > upperMostCoordinate)
+                    upperMostCoordinate = circle.Center.Y + circle.Radius;
             }
 
             /*
@@ -175,12 +176,10 @@ namespace EPLAN_Cable_Packing
             return (leftMostCoordinate, rightMostCoordinate, lowerMostCoordinate, upperMostCoordinate);
         }
 
-        private void PlaceCircles(List<int> diameters, Point bundleCenter)
+        private void PlaceCircles(List<int> radii, Point bundleCenter)
         {
-            foreach (var diameter in diameters)
+            foreach (var radius in radii)
             {
-                var circle = new Circle() {Diameter = diameter};
-
                 var bestSquareDistance = long.MaxValue;
                 var bestCenter = new Point(int.MaxValue, int.MaxValue);
 
@@ -196,7 +195,7 @@ namespace EPLAN_Cable_Packing
                         // There is an already better point (i.e. closer to the center) that has been discovered
                         if (!(SquareDistance(new Point(i, j), bundleCenter) < bestSquareDistance)) continue;
 
-                        var intersectsAnotherCircle = CircleContainsAnotherCircle(diameter, i, j);
+                        var intersectsAnotherCircle = CircleContainsAnotherCircle(radius, i, j);
 
                         // The circle would intersect another circle if it were to be placed here
                         if (intersectsAnotherCircle) continue;
@@ -209,8 +208,7 @@ namespace EPLAN_Cable_Packing
 
                 if (!(bestSquareDistance < long.MaxValue)) throw new NotImplementedException();
 
-                circle.Center = bestCenter;
-                _circlePlacements.Add(circle);
+                _circlePlacements.Add(new Circle(radius, bestCenter));
             }
         }
 
@@ -242,19 +240,19 @@ namespace EPLAN_Cable_Packing
                     break;
                 */
 
-                if (SquareDistance(new Point(coordinateX, coordinateY), circle.Center) < Power(circle.Diameter, 2))
+                if (SquareDistance(new Point(coordinateX, coordinateY), circle.Center) < Power(circle.Radius, 2))
                     return true;
             }
 
             return false;
         }
 
-        private bool CircleContainsAnotherCircle(int diameter, long circleCenterX, long circleCenterY)
+        private bool CircleContainsAnotherCircle(int radius, long circleCenterX, long circleCenterY)
         {
             foreach (var circle in _circlePlacements)
             {
                 if (SquareDistance(new Point(circleCenterX, circleCenterY), circle.Center) <
-                    Power(circle.Diameter + diameter, 2))
+                    Power(circle.Radius + radius, 2))
                     return true;
             }
 
@@ -301,9 +299,9 @@ namespace EPLAN_Cable_Packing
 
     internal class LinearProgrammingPackingAlgorithm : IPackingAlgorithm
     {
-        public PackingResultWrapper Run(List<int> diameters)
+        public PackingResultWrapper Run(List<int> radii)
         {
-            var returnValue = new PackingResultWrapper { Bundle = { Center = new Point(6, 2), Diameter = 2 } };
+            var returnValue = new PackingResultWrapper { Bundle = { Center = new Point(6, 2), Radius = 2 } };
 
             return returnValue;
         }
@@ -311,7 +309,7 @@ namespace EPLAN_Cable_Packing
 
     internal interface IPackingAlgorithm
     {
-        PackingResultWrapper Run(List<int> diameters);
+        PackingResultWrapper Run(List<int> radii);
     }
 
     internal class CablePacking

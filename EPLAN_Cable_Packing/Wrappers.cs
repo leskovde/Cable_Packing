@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Text;
 
 namespace EPLAN_Cable_Packing
@@ -39,13 +40,21 @@ namespace EPLAN_Cable_Packing
 
     internal struct Circle
     {
-        public int Diameter;
+        public int Radius;
+        public Color Color;
         public Point Center;
 
-        public Circle(int diameter, Point center)
+        public Circle(int radius, Point center)
         {
-            Diameter = diameter;
+            Radius = radius;
             Center = center;
+
+            var rnd = new Random();
+
+            Color = default;
+
+            while (Color.R < 30 && Color.G < 30 && Color.B < 30)
+                Color = Color.FromArgb(rnd.Next(256), rnd.Next(256), rnd.Next(256));
         }
     }
 

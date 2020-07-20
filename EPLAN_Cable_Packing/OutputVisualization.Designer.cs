@@ -30,56 +30,161 @@
         {
             this.Canvas = new System.Windows.Forms.Panel();
             this.UiPanel = new System.Windows.Forms.Panel();
+            this.Status = new System.Windows.Forms.Label();
+            this.StatusLabel = new System.Windows.Forms.Label();
+            this.LinearSwitch = new System.Windows.Forms.RadioButton();
+            this.GreedySwitch = new System.Windows.Forms.RadioButton();
+            this.StartButton = new System.Windows.Forms.Button();
+            this.BrowseButton = new System.Windows.Forms.Button();
+            this.OutputDiameterText = new System.Windows.Forms.Label();
+            this.OutputDiameter = new System.Windows.Forms.Label();
             this.FileName = new System.Windows.Forms.Label();
             this.FileNameLabel = new System.Windows.Forms.Label();
+            this.OpenFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.UiPanel.SuspendLayout();
             this.SuspendLayout();
             // 
             // Canvas
             // 
             this.Canvas.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.Canvas.Location = new System.Drawing.Point(0, 125);
+            this.Canvas.Location = new System.Drawing.Point(0, 100);
+            this.Canvas.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Canvas.Name = "Canvas";
-            this.Canvas.Size = new System.Drawing.Size(782, 828);
+            this.Canvas.Size = new System.Drawing.Size(782, 662);
             this.Canvas.TabIndex = 0;
             this.Canvas.Paint += new System.Windows.Forms.PaintEventHandler(this.Canvas_Paint);
             // 
             // UiPanel
             // 
             this.UiPanel.BackColor = System.Drawing.SystemColors.ControlDark;
+            this.UiPanel.Controls.Add(this.Status);
+            this.UiPanel.Controls.Add(this.StatusLabel);
+            this.UiPanel.Controls.Add(this.LinearSwitch);
+            this.UiPanel.Controls.Add(this.GreedySwitch);
+            this.UiPanel.Controls.Add(this.StartButton);
+            this.UiPanel.Controls.Add(this.BrowseButton);
+            this.UiPanel.Controls.Add(this.OutputDiameterText);
+            this.UiPanel.Controls.Add(this.OutputDiameter);
             this.UiPanel.Controls.Add(this.FileName);
             this.UiPanel.Controls.Add(this.FileNameLabel);
             this.UiPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.UiPanel.Location = new System.Drawing.Point(0, 0);
+            this.UiPanel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.UiPanel.Name = "UiPanel";
-            this.UiPanel.Size = new System.Drawing.Size(782, 125);
+            this.UiPanel.Size = new System.Drawing.Size(782, 100);
             this.UiPanel.TabIndex = 1;
+            // 
+            // Status
+            // 
+            this.Status.AutoSize = true;
+            this.Status.Location = new System.Drawing.Point(71, 72);
+            this.Status.Name = "Status";
+            this.Status.Size = new System.Drawing.Size(23, 17);
+            this.Status.TabIndex = 9;
+            this.Status.Text = "---";
+            // 
+            // StatusLabel
+            // 
+            this.StatusLabel.AutoSize = true;
+            this.StatusLabel.Location = new System.Drawing.Point(13, 72);
+            this.StatusLabel.Name = "StatusLabel";
+            this.StatusLabel.Size = new System.Drawing.Size(52, 17);
+            this.StatusLabel.TabIndex = 8;
+            this.StatusLabel.Text = "Status:";
+            // 
+            // LinearSwitch
+            // 
+            this.LinearSwitch.AutoSize = true;
+            this.LinearSwitch.Checked = true;
+            this.LinearSwitch.Location = new System.Drawing.Point(483, 61);
+            this.LinearSwitch.Name = "LinearSwitch";
+            this.LinearSwitch.Size = new System.Drawing.Size(180, 21);
+            this.LinearSwitch.TabIndex = 7;
+            this.LinearSwitch.TabStop = true;
+            this.LinearSwitch.Text = "Approximation algorithm";
+            this.LinearSwitch.UseVisualStyleBackColor = true;
+            this.LinearSwitch.CheckedChanged += new System.EventHandler(this.LinearSwitch_CheckedChanged);
+            // 
+            // GreedySwitch
+            // 
+            this.GreedySwitch.AutoSize = true;
+            this.GreedySwitch.Location = new System.Drawing.Point(483, 23);
+            this.GreedySwitch.Name = "GreedySwitch";
+            this.GreedySwitch.Size = new System.Drawing.Size(138, 21);
+            this.GreedySwitch.TabIndex = 6;
+            this.GreedySwitch.TabStop = true;
+            this.GreedySwitch.Text = "Greedy algorithm";
+            this.GreedySwitch.UseVisualStyleBackColor = true;
+            this.GreedySwitch.CheckedChanged += new System.EventHandler(this.GreedySwitch_CheckedChanged);
+            // 
+            // StartButton
+            // 
+            this.StartButton.Location = new System.Drawing.Point(684, 53);
+            this.StartButton.Name = "StartButton";
+            this.StartButton.Size = new System.Drawing.Size(86, 36);
+            this.StartButton.TabIndex = 5;
+            this.StartButton.Text = "Run";
+            this.StartButton.UseVisualStyleBackColor = true;
+            this.StartButton.Click += new System.EventHandler(this.StartButton_Click);
+            // 
+            // BrowseButton
+            // 
+            this.BrowseButton.Location = new System.Drawing.Point(12, 42);
+            this.BrowseButton.Name = "BrowseButton";
+            this.BrowseButton.Size = new System.Drawing.Size(92, 27);
+            this.BrowseButton.TabIndex = 4;
+            this.BrowseButton.Text = "Browse";
+            this.BrowseButton.UseVisualStyleBackColor = true;
+            this.BrowseButton.Click += new System.EventHandler(this.BrowseButton_Click);
+            // 
+            // OutputDiameterText
+            // 
+            this.OutputDiameterText.AutoSize = true;
+            this.OutputDiameterText.Location = new System.Drawing.Point(297, 72);
+            this.OutputDiameterText.Name = "OutputDiameterText";
+            this.OutputDiameterText.Size = new System.Drawing.Size(23, 17);
+            this.OutputDiameterText.TabIndex = 3;
+            this.OutputDiameterText.Text = "---";
+            // 
+            // OutputDiameter
+            // 
+            this.OutputDiameter.AutoSize = true;
+            this.OutputDiameter.Location = new System.Drawing.Point(176, 72);
+            this.OutputDiameter.Name = "OutputDiameter";
+            this.OutputDiameter.Size = new System.Drawing.Size(115, 17);
+            this.OutputDiameter.TabIndex = 2;
+            this.OutputDiameter.Text = "Bundle diameter:";
             // 
             // FileName
             // 
             this.FileName.AutoSize = true;
-            this.FileName.Location = new System.Drawing.Point(95, 13);
+            this.FileName.Location = new System.Drawing.Point(95, 10);
             this.FileName.Name = "FileName";
-            this.FileName.Size = new System.Drawing.Size(27, 20);
+            this.FileName.Size = new System.Drawing.Size(23, 17);
             this.FileName.TabIndex = 1;
             this.FileName.Text = "---";
             // 
             // FileNameLabel
             // 
             this.FileNameLabel.AutoSize = true;
-            this.FileNameLabel.Location = new System.Drawing.Point(13, 13);
+            this.FileNameLabel.Location = new System.Drawing.Point(13, 10);
             this.FileNameLabel.Name = "FileNameLabel";
-            this.FileNameLabel.Size = new System.Drawing.Size(76, 20);
+            this.FileNameLabel.Size = new System.Drawing.Size(73, 17);
             this.FileNameLabel.TabIndex = 0;
             this.FileNameLabel.Text = "File name:";
             // 
+            // OpenFileDialog
+            // 
+            this.OpenFileDialog.FileName = "OpenFileDialog";
+            // 
             // OutputVisualization
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(782, 953);
+            this.ClientSize = new System.Drawing.Size(782, 762);
             this.Controls.Add(this.UiPanel);
             this.Controls.Add(this.Canvas);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Name = "OutputVisualization";
             this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
@@ -96,6 +201,15 @@
         private System.Windows.Forms.Panel UiPanel;
         private System.Windows.Forms.Label FileName;
         private System.Windows.Forms.Label FileNameLabel;
+        private System.Windows.Forms.Label OutputDiameterText;
+        private System.Windows.Forms.Label OutputDiameter;
+        private System.Windows.Forms.Button BrowseButton;
+        private System.Windows.Forms.OpenFileDialog OpenFileDialog;
+        private System.Windows.Forms.RadioButton LinearSwitch;
+        private System.Windows.Forms.RadioButton GreedySwitch;
+        private System.Windows.Forms.Button StartButton;
+        private System.Windows.Forms.Label Status;
+        private System.Windows.Forms.Label StatusLabel;
     }
 }
 

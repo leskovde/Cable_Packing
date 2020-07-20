@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -53,13 +54,22 @@ namespace EPLAN_Cable_Packing
         }
     }
 
-    public static class GraphicsExtensions
+    internal static class GraphicsExtensions
     {
         public static void DrawCircle(this Graphics g, Pen pen,
-            float centerX, float centerY, float radius)
+            Circle circle, float divisor, float xAxisOffset, float yAxisOffset, decimal originalRadius)
         {
-            g.DrawEllipse(pen, centerX - radius, centerY - radius,
-                radius + radius, radius + radius);
+            pen.Color = circle.Color;
+
+            var multipliedRadius = circle.Radius / divisor;
+            var multipliedCenterX = circle.Center.X / divisor + xAxisOffset - multipliedRadius;
+            var multipliedCenterY = circle.Center.Y / divisor + yAxisOffset - multipliedRadius;
+
+            g.DrawEllipse(pen, multipliedCenterX, multipliedCenterY,
+                2 * multipliedRadius, 2 * multipliedRadius);
+
+            g.DrawString(originalRadius.ToString(CultureInfo.InvariantCulture), new Font("Arial", 8), new SolidBrush(pen.Color),
+                multipliedCenterX + multipliedRadius, multipliedCenterY + multipliedRadius);
         }
 
         public static void FillCircle(this Graphics g, Brush brush,
@@ -70,13 +80,13 @@ namespace EPLAN_Cable_Packing
         }
     }
 
-    static class Program
+    internal static class Program
     {
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main()
+        private static void Main()
         {
             /*
             var factories = new Dictionary<Algorithms, AlgorithmFactory>
@@ -111,7 +121,7 @@ namespace EPLAN_Cable_Packing
             var result = cablePacking.GetCablePacking(integerDiameters);
             */
 
-            Application.SetHighDpiMode(HighDpiMode.SystemAware);
+            //Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new OutputVisualization());

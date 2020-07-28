@@ -37,7 +37,7 @@ The single pass and greedy algorithm share some similarities. They share an imag
 
 Giving the best results, the greedy algorithm is currently the most accurate circle packing algorithm currently implemented. First, the input is sorted in a descending manner, so that the largest circles are placed first. Then, for each circle that has yet to be placed, we find a position closest to the center of the grid that is not occupied. This  involves scanning the grid for each circle, resulting in an `O(m + c)` time complexity, where `m` is the number of circles and `c` is a constant number of steps needed to traverse the grid. 
 
-### `The single` pass algorithm 
+### The single pass algorithm 
 
 Using a spiral to then place every circle in a single grid scan, the single pass algorithm achieves subpar results. Many heuristics can be made. This implementation tries to distribute the circles onto the spiral in a more balanced way. First, the circles are split into two halves after being sorted.  Second, the circles are then placed onto the spiral. If the current  spiral point does not fit a large circle, a smaller circle is chosen. This results in a runtime of `O(c)`. 
 

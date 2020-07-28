@@ -32,19 +32,14 @@ The program writes the diameter of the wire bundle to a label in the UI. It also
 
 ## Algorithms 
 
-The single pass and greedy algorithm share some similarities. They share an imaginary grid that serves as a discrete two-dimensional space. Points can only be placed onto the grid. The grid has the size of the sum of all input radii for both of its axes. Roughness tells the algorithm how accurately it should run. Roughness translates equally to the size of a single step in the grid. The higher the roughness, the faster the grid can be traversed. Roughness is by default set by a function of 
-$$
-1.25 * |grid|^{(-1/2)}
-$$
-But it can also be changed inside the code manually. Different roughness values contribute to different resulting packings. Another common quality is the fitting of the wire bundle. After all  inner circles have been placed, a grid scan ensures that the center of  the outer circle is in its best position and has the lowest possible radius.
-
+The single pass and greedy algorithm share some similarities. They share an imaginary grid that serves as a discrete two-dimensional space. Points can only be placed onto the grid. The grid has the size of the sum of all input radii for both of its axes. Roughness tells the algorithm how accurately it should run. Roughness translates equally to the size of a single step in the grid. The higher the roughness, the faster the grid can be traversed. Roughness is by default set to `gridSize/1000.`But it can also be changed inside the code manually. Different roughness values contribute to different resulting packings. Another common quality is the fitting of the wire bundle. After all  inner circles have been placed, a grid scan ensures that the center of  the outer circle is in its best position and has the lowest possible radius.
 ### The greedy algorithm 
 
-Giving the best results, the greedy algorithm is currently the most accurate circle packing algorithm currently implemented. First, the input is sorted in a descending manner, so that the largest circles are placed first. Then, for each circle that has yet to be placed, we find a position closest to the center of the grid that is not occupied. This  involves scanning the grid for each circle, resulting in an `O(m*n^2)` time complexity, where `m` is the number of circles and `n` is the sum of its radii. 
+Giving the best results, the greedy algorithm is currently the most accurate circle packing algorithm currently implemented. First, the input is sorted in a descending manner, so that the largest circles are placed first. Then, for each circle that has yet to be placed, we find a position closest to the center of the grid that is not occupied. This  involves scanning the grid for each circle, resulting in an `O(m + c)` time complexity, where `m` is the number of circles and `c` is a constant number of steps needed to traverse the grid. 
 
-### The single pass algorithm 
+### `The single` pass algorithm 
 
-Using a spiral to then place every circle in a single grid scan, the single pass algorithm achieves subpar results. Many heuristics can be made. This implementation tries to distribute the circles onto the spiral in a more balanced way. First, the circles are split into two halves after being sorted.  Second, the circles are then placed onto the spiral. If the current  spiral point does not fit a large circle, a smaller circle is chosen. This results in a runtime of `O(n^2)`. 
+Using a spiral to then place every circle in a single grid scan, the single pass algorithm achieves subpar results. Many heuristics can be made. This implementation tries to distribute the circles onto the spiral in a more balanced way. First, the circles are split into two halves after being sorted.  Second, the circles are then placed onto the spiral. If the current  spiral point does not fit a large circle, a smaller circle is chosen. This results in a runtime of `O(c)`. 
 
 ### The mixed integer program 
 

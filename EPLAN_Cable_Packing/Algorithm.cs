@@ -22,7 +22,7 @@ namespace EPLAN_Cable_Packing
 
         public static double GetRoughnessMultiplier(long inputSize)
         {
-            return Math.Min(Math.Min(1, 1.25 * Math.Pow(inputSize, -0.5)), 1000.0 / inputSize);
+            return 1000.0 / inputSize;
         }
 
         public static (Point newBundleCenter, long actualBundleRadius) PlaceBundle(long lowestBundleRadius,
@@ -101,8 +101,8 @@ namespace EPLAN_Cable_Packing
     {
         public PackingResultWrapper Run(List<long> radii)
         {
-            var gridSize = radii.Sum();
-            var roughnessMultiplier = (long) (1.0 / GetRoughnessMultiplier(gridSize));
+            var gridSize = 2 * radii.Sum();
+            var step = gridSize / 1000;
             var bundleCenter = new Point(gridSize / 2, gridSize / 2);
 
             radii.Sort((x, y) => y.CompareTo(x));
@@ -117,7 +117,7 @@ namespace EPLAN_Cable_Packing
 
             // Slowly spiral out of the center
             foreach (var point in bundleCenter.GetSpiralInterval(new Point(0, 0),
-                new Point(gridSize, gridSize), Math.Max(roughnessMultiplier / 2, 1)))
+                new Point(gridSize, gridSize), step))
             {
                 if (largeRadiiQueue.Count == 0 && smallRadiiQueue.Count == 0) break;
 
@@ -165,7 +165,7 @@ namespace EPLAN_Cable_Packing
 
             long actualBundleRadius;
             (bundleCenter, actualBundleRadius) = PlaceBundle(lowestBundleRadius, bundleCenter, circlePlacements,
-                gridSize, roughnessMultiplier);
+                gridSize, step);
 
             return new PackingResultWrapper(new Circle(actualBundleRadius, bundleCenter) {Color = Color.Lime},
                 circlePlacements);
@@ -180,12 +180,12 @@ namespace EPLAN_Cable_Packing
     {
         private List<Circle> _circlePlacements;
         private long _gridSize;
-        private long _roughnessMultiplier;
+        private long _step;
 
         public PackingResultWrapper Run(List<long> radii)
         {
-            _gridSize = radii.Sum();
-            _roughnessMultiplier = (long) (1.0 / GetRoughnessMultiplier(_gridSize));
+            _gridSize = 2 * radii.Sum();
+            _step = _gridSize / 1000;
             var bundleCenter = new Point(_gridSize / 2, _gridSize / 2);
 
             radii.Sort((x, y) => y.CompareTo(x));
@@ -203,7 +203,7 @@ namespace EPLAN_Cable_Packing
 
             long actualBundleRadius;
             (bundleCenter, actualBundleRadius) = PlaceBundle(lowestBundleRadius, bundleCenter, _circlePlacements,
-                _gridSize, _roughnessMultiplier);
+                _gridSize, _step);
 
             return new PackingResultWrapper(new Circle(actualBundleRadius, bundleCenter) {Color = Color.Lime},
                 _circlePlacements);
@@ -217,9 +217,9 @@ namespace EPLAN_Cable_Packing
                 var bestCenter = new Point(long.MaxValue, long.MaxValue);
 
                 // X axis
-                for (long i = 0; i < _gridSize; i += _roughnessMultiplier)
+                for (long i = 0; i < _gridSize; i += _step)
                     // Y axis
-                    for (long j = 0; j < _gridSize; j += _roughnessMultiplier)
+                    for (long j = 0; j < _gridSize; j += _step)
                     {
                         // This point in the grid is already occupied
                         if (CoordinateContainsCircle(i, j)) continue;
@@ -378,9 +378,9 @@ namespace EPLAN_Cable_Packing
 
                 // The solver doesn't support the multiplication of negative variables! Further constraints or domain limitation is needed.
                 /*
-                    model.Add(circleDistances[i, j, 0] >= 0);
-                    model.Add(circleDistances[i, j, 1] >= 0);
-                    */
+                model.Add(circleDistances[i, j, 0] >= 0);
+                model.Add(circleDistances[i, j, 1] >= 0);
+                */
 
                 model.Add(circleDistances[i, j, 0] == circleCenters[i, 0] - circleCenters[j, 0]);
                 model.Add(circleDistances[i, j, 1] == circleCenters[i, 1] - circleCenters[j, 1]);

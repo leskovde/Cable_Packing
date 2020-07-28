@@ -25,19 +25,19 @@ namespace EPLAN_Cable_Packing
         {
             e.Graphics.Clear(Canvas.BackColor);
 
-            var multiplier = 3 * (float) result.Bundle.Radius / Canvas.Width;
-            var xAxisOffset = (float) Canvas.Width / 2 - result.Bundle.Center.X / multiplier;
-            var yAxisOffset = (float) Canvas.Height / 2 - result.Bundle.Center.Y / multiplier;
+            var ratioDivisor = 3 * (float) result.Bundle.Radius / Canvas.Width;
+            var xAxisOffset = (float) Canvas.Width / 2 - result.Bundle.Center.X / ratioDivisor;
+            var yAxisOffset = (float) Canvas.Height / 2 - result.Bundle.Center.Y / ratioDivisor;
 
             var outerCirclePen = new Pen(Color.LimeGreen, 3);
             var innerCirclePen = new Pen(Color.Aqua, 1);
 
-            e.Graphics.DrawCircle(outerCirclePen, result.Bundle, multiplier, xAxisOffset, yAxisOffset,
+            e.Graphics.DrawCircle(outerCirclePen, result.Bundle, ratioDivisor, xAxisOffset, yAxisOffset,
                 result.Bundle.Radius / (decimal) Math.Pow(10, maxPrecision));
 
 
             foreach (var circle in result.InnerCircles)
-                e.Graphics.DrawCircle(innerCirclePen, circle, multiplier, xAxisOffset, yAxisOffset,
+                e.Graphics.DrawCircle(innerCirclePen, circle, ratioDivisor, xAxisOffset, yAxisOffset,
                     circle.Radius / (decimal) Math.Pow(10, maxPrecision));
 
             OutputDiameterText.Text =
@@ -95,9 +95,6 @@ namespace EPLAN_Cable_Packing
 
             var inputFile = FileName.Text;
 
-            var maxPrecision = 0;
-            var longestInputNumberDigits = 0;
-
             var radii = new List<decimal>();
 
             using (var inputProcessor = new InputProcessor(inputFile))
@@ -107,30 +104,11 @@ namespace EPLAN_Cable_Packing
                 while ((entry = inputProcessor.ReadEntry()) != null)
                 {
                     radii.Add(entry.Value);
-
-                    if (entry.Value.Precision() > maxPrecision)
-                        maxPrecision = entry.Value.Precision();
-
-                    if (entry.Value.Digits() > longestInputNumberDigits)
-                        longestInputNumberDigits = entry.Value.Digits();
                 }
             }
 
-            var integerRadii = radii.Select(radius => (long) (radius * (decimal) Math.Pow(10, maxPrecision))).ToList();
+            var (integerRadii, maxPrecision) = radii.Normalize();
             
-            // Enhance the precision of the input to nearly 10^5
-            var additionalEnhancement = 0;
-
-            while ((integerRadii.Sum()) < 80000)
-            {
-                for (var i = 0; i < integerRadii.Count; i++)
-                    integerRadii[i] *= 10;
-
-                additionalEnhancement++;
-            }
-
-            maxPrecision += additionalEnhancement;
-
             var cablePacking = new CablePacking(factories[AlgorithmType].Create());
             var result = cablePacking.GetCablePacking(integerRadii);
 

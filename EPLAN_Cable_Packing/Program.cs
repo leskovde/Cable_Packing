@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
@@ -20,6 +21,47 @@ namespace EPLAN_Cable_Packing
         {
             return decimalValue.ToString(CultureInfo.InvariantCulture)
                 .Count(c => c != '.');
+        }
+    }
+
+    internal static class ListExtensions
+    {
+        public static int NormalizedDigitCountLowerBound = 5;
+        public static int NormalizedDigitCountUpperBound = 7;
+
+        public static (List<long>, int maxPrecision) Normalize(this List<decimal> decimalList)
+        {
+            var maxPrecision = 0;
+
+            foreach (var @decimal in decimalList)
+            {
+                if (@decimal.Precision() > maxPrecision)
+                    maxPrecision = @decimal.Precision();
+            }
+
+            var integerList = decimalList.Select(radius => (long) (radius * (decimal) Math.Pow(10, maxPrecision))).ToList();
+
+            while (integerList.Sum() > Math.Pow(10, NormalizedDigitCountUpperBound))
+            {
+                for (var i = 0; i < integerList.Count; i++)
+                {
+                    integerList[i] /= 10;
+                }
+
+                maxPrecision--;
+            }
+
+            while (integerList.Sum() < Math.Pow(10, NormalizedDigitCountLowerBound))
+            {
+                for (var i = 0; i < integerList.Count; i++)
+                {
+                    integerList[i] *= 10;
+                }
+
+                maxPrecision++;
+            }
+
+            return (integerList, maxPrecision);
         }
     }
 

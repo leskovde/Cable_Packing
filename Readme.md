@@ -3,8 +3,8 @@
 Packs a series of input circles into the smallest found diameter.
 
 <p float="left">
-  <img src="img/greedy.png" width="45%" />
-  <img src="img/spiral.png" width="45%" /> 
+  <img src="img/greedy.PNG" width="45%" />
+  <img src="img/spiral.PNG" width="45%" /> 
 </p>
 
 

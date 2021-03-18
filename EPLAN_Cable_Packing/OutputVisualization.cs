@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace EPLAN_Cable_Packing
@@ -82,7 +83,7 @@ namespace EPLAN_Cable_Packing
             AlgorithmType = Algorithms.SinglePass;
         }
 
-        private void StartButton_Click(object sender, EventArgs e)
+        private async void StartButton_Click(object sender, EventArgs e)
         {
             Status.Text = "Running";
 
@@ -109,15 +110,19 @@ namespace EPLAN_Cable_Packing
 
             var (integerRadii, maxPrecision) = radii.Normalize();
             
-            var cablePacking = new CablePacking(factories[AlgorithmType].Create());
-            var result = cablePacking.GetCablePacking(integerRadii);
-
-            Canvas.Paint += (senderObj, paintEventArgs) =>
+            await Task.Run(() =>
             {
-                Canvas_Paint(paintEventArgs, result, maxPrecision);
-            };
-            Canvas.Refresh();
+                var cablePacking = new CablePacking(factories[AlgorithmType].Create());
+                var result = cablePacking.GetCablePacking(integerRadii);
 
+                Canvas.Paint += (senderObj, paintEventArgs) =>
+                {
+                    Canvas_Paint(paintEventArgs, result, maxPrecision);
+                };
+            });
+
+            Canvas.Refresh();
+            
             Status.Text = "Finished";
         }
     }
